@@ -112,6 +112,35 @@ function brickTile(a,b,c,seed){
     g.globalAlpha=1;
   });
 }
+// tile de bloque PIXEL-ART estilo TowerFall (52x52) por ecosistema
+function arenaTile(eco,pal,seed){
+  const S=52;
+  return cv(S,S,g=>{
+    const r=rng((eco.length*97+(seed||0)*31)>>>0);
+    g.fillStyle=pal.block; g.fillRect(0,0,S,S);
+    // ruido de piedra en pixeles
+    for(let i=0;i<30;i++){ g.fillStyle=r()<0.5?'rgba(255,255,255,.05)':'rgba(0,0,0,.11)';
+      g.fillRect((r()*S)|0,(r()*S)|0,2,2); }
+    // bisel pixel: claro arriba/izq, oscuro abajo/der
+    g.fillStyle=pal.top;               g.fillRect(0,0,S,3); g.fillRect(0,0,3,S);
+    g.fillStyle='rgba(0,0,0,.34)';     g.fillRect(0,S-4,S,4); g.fillRect(S-4,0,4,S);
+    if(eco==='nieve'){ g.fillStyle='rgba(212,240,255,.5)';
+      g.beginPath(); g.moveTo(26,12); g.lineTo(36,22); g.lineTo(26,32); g.lineTo(16,22); g.closePath(); g.fill();
+      g.fillStyle='rgba(255,255,255,.45)'; g.fillRect(24,20,4,4);
+      g.fillStyle='rgba(150,195,225,.5)'; g.fillRect(10,40,6,2); g.fillRect(38,42,5,2);
+    } else if(eco==='selva'){ g.strokeStyle='rgba(0,0,0,.22)'; g.lineWidth=2;
+      g.beginPath(); g.moveTo(12,10); g.lineTo(20,22); g.lineTo(14,36); g.moveTo(34,12); g.lineTo(30,28); g.stroke();
+      g.fillStyle='rgba(96,150,66,.6)'; for(let i=0;i<6;i++) g.fillRect((8+r()*36)|0,(8+r()*36)|0,3,3);
+    } else if(eco==='desierto'){ g.fillStyle='rgba(0,0,0,.22)';
+      g.fillRect(14,12,7,7); g.fillRect(31,12,7,7); g.fillRect(16,28,20,3); g.fillRect(24,34,7,7);
+      g.fillStyle='rgba(255,211,77,.22)'; g.fillRect(15,13,5,2); g.fillRect(32,13,5,2);
+    } else if(eco==='volcan'){ g.strokeStyle='rgba(255,120,40,.65)'; g.lineWidth=2;
+      g.beginPath(); g.moveTo(10,36); g.lineTo(20,24); g.lineTo(26,32); g.lineTo(38,20); g.stroke();
+      g.fillStyle='#ffd34d'; g.fillRect(19,24,3,3); g.fillRect(36,20,3,3);
+    }
+    g.strokeStyle='rgba(0,0,0,.5)'; g.lineWidth=2; g.strokeRect(1,1,S-2,S-2);  // rejilla estilo TowerFall
+  });
+}
 
 // ---------- kit de bomberman por ecosistema ----------
 function bomberKit(id){
@@ -416,6 +445,7 @@ function makeTFRender(eco,layout){
   const bgBricks=[]; for(let i=0;i<26;i++) bgBricks.push([r()*800,r()*600,30+r()*40]);
   const amb=makeAmbient(pal.amb,832,640);
   const hash=(c,r2,n)=>((c*7+r2*13+(layout.variant||0)*5)%n+n)%n;
+  const blockImg=arenaTile(eco,pal,layout.variant);   // tile pixel-art de los bloques
 
   // corridas horizontales de bloques
   const runs=[];
@@ -591,36 +621,25 @@ function makeTFRender(eco,layout){
       }
     });
 
-    // bloques: piedra tallada sólida (combina con los fondos, sin rejilla tipo Mario)
+    // bloques: tile PIXEL-ART estilo TowerFall
+    const sm=ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled=false;
     for(let r2=0;r2<12;r2++)for(let c=0;c<16;c++){
       if(!at(c,r2)) continue;
       const x=c*CELL, y=GRID_OY+r2*CELL;
-      ctx.fillStyle=pal.block; ctx.fillRect(x,y,CELL,CELL);
-      // profundidad: luz arriba, sombra abajo
-      const gd=ctx.createLinearGradient(x,y,x,y+CELL);
-      gd.addColorStop(0,'rgba(255,255,255,.07)'); gd.addColorStop(.45,'rgba(0,0,0,0)'); gd.addColorStop(1,'rgba(0,0,0,.44)');
-      ctx.fillStyle=gd; ctx.fillRect(x,y,CELL,CELL);
-      // grieta sutil de piedra (determinista, escasa)
-      if(hash(c,r2,2)===0){ ctx.strokeStyle='rgba(0,0,0,.16)'; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(x+CELL*0.32,y+5); ctx.lineTo(x+CELL*0.42,y+CELL-7); ctx.stroke(); }
-      // superficie superior donde te paras
+      ctx.drawImage(blockImg,x,y);
+      // copete temático en la superficie donde te paras
       if(!at(c,r2-1)){
-        ctx.fillStyle=pal.top; ctx.fillRect(x,y,CELL,5);
-        ctx.fillStyle='rgba(255,255,255,.30)'; ctx.fillRect(x,y,CELL,2);
         if(eco==='nieve'){ ctx.fillStyle='#eef8ff'; ctx.fillRect(x,y-4,CELL,6);
           ctx.fillRect(x+6,y-7,12,4); ctx.fillRect(x+30,y-6,14,3); }
         else if(eco==='selva'){ ctx.fillStyle='#5a8f3c'; ctx.fillRect(x,y-2,CELL,4);
           ctx.fillRect(x+8,y+3,5,6); ctx.fillRect(x+34,y+3,5,7); }
-        else if(eco==='desierto'){ ctx.fillStyle='#ffd34d'; ctx.fillRect(x,y-2,CELL,5);
+        else if(eco==='desierto'){ ctx.fillStyle='#ffd34d'; ctx.fillRect(x,y-2,CELL,4);
           ctx.fillStyle='#8a5a1a'; ctx.fillRect(x+10,y-1,4,3); ctx.fillRect(x+38,y-1,4,3); }
         else if(eco==='volcan'){ const p=0.5+0.5*Math.sin(time*2.5+c*1.3);
-          ctx.fillStyle=`rgba(255,140,50,${0.5+0.4*p})`; ctx.fillRect(x,y-1,CELL,3); }
+          ctx.fillStyle=`rgba(255,140,50,${0.55+0.4*p})`; ctx.fillRect(x,y-1,CELL,3); }
       }
-      // caras expuestas: sombra suave (no mortero grueso)
-      if(!at(c,r2+1)){ ctx.fillStyle='rgba(0,0,0,.42)'; ctx.fillRect(x,y+CELL-4,CELL,4); }
-      if(!at(c-1,r2)){ ctx.fillStyle='rgba(0,0,0,.30)'; ctx.fillRect(x,y,3,CELL); }
-      if(!at(c+1,r2)){ ctx.fillStyle='rgba(0,0,0,.30)'; ctx.fillRect(x+CELL-3,y,3,CELL); }
     }
+    ctx.imageSmoothingEnabled=sm;
     // antorchas laterales con flama viva
     torches.forEach(([tx,ty],i)=>{
       ctx.fillStyle='#3a2a18'; ctx.fillRect(tx-3,ty-4,6,12);
