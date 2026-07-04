@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEARTS — Bet your hearts</title>
+<meta name="description" content="The battle royale where every heart you carry can be stolen. 8 go in. 1 takes it all. Play free in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{ --red:#e8281e; --blue:#1e9be8; --ink:#08080c; --paper:#f2ede2; --grey:#8b867b; --gold:#ffd34d; }
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--paper);font-family:'Archivo',system-ui,sans-serif;overflow-x:hidden}
+img{image-rendering:auto}
+.mono{font-family:'Space Mono',monospace}
+section{padding:90px 6vw;max-width:1100px;margin:0 auto}
+h2{font-family:'Archivo Black',sans-serif;font-size:clamp(28px,4vw,44px);letter-spacing:.04em;margin-bottom:10px}
+.kick{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.32em;color:var(--red);font-weight:700}
+
+/* HERO */
+.hero{min-height:92vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;padding:40px 6vw}
+.hero::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 20%, rgba(232,40,30,.16), transparent 55%),
+             radial-gradient(ellipse at 20% 90%, rgba(30,155,232,.10), transparent 50%);pointer-events:none}
+.heart{
+  width:110px;height:98px;background:var(--red);margin-bottom:26px;
+  clip-path:polygon(50% 100%,10% 60%,0 38%,6% 16%,22% 6%,38% 10%,50% 24%,62% 10%,78% 6%,94% 16%,100% 38%,90% 60%);
+  animation:beat 1.1s ease-in-out infinite;
+  filter:drop-shadow(0 0 34px rgba(232,40,30,.55));
+}
+@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.14)}24%{transform:scale(1)}36%{transform:scale(1.08)}}
+.hero h1{font-family:'Archivo Black',sans-serif;font-size:clamp(56px,11vw,124px);letter-spacing:.06em;line-height:.95}
+.tag{font-family:'Archivo Black',sans-serif;font-size:clamp(17px,2.6vw,26px);color:var(--gold);margin-top:10px;letter-spacing:.06em}
+.sub{color:var(--grey);max-width:560px;margin:16px auto 30px;font-size:15px;line-height:1.6}
+.cta{
+  display:inline-block;background:var(--red);color:#fff;text-decoration:none;
+  font-family:'Archivo Black',sans-serif;font-size:22px;letter-spacing:.14em;
+  padding:20px 58px;border-radius:14px;box-shadow:0 6px 0 #8f130c, 0 16px 44px rgba(232,40,30,.35);
+  transition:transform .1s ease;
+}
+.cta:hover{transform:translateY(-2px)}
+.cta:active{transform:translateY(3px);box-shadow:0 2px 0 #8f130c}
+.hero .mono.small{margin-top:14px;font-size:11px;color:var(--grey)}
+.vs{display:flex;gap:6vw;align-items:flex-end;margin:34px 0 8px}
+.vs img{height:150px;filter:drop-shadow(0 10px 24px rgba(0,0,0,.6))}
+.vs .p{animation:float 3s ease-in-out infinite}
+.vs .d{animation:float 3s ease-in-out .6s infinite}
+@keyframes float{50%{transform:translateY(-9px)}}
+
+/* STEPS */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-top:34px}
+.step{background:#101016;border:1px solid #1e1e26;border-radius:16px;padding:26px 22px}
+.step .num{display:block;font-family:'Archivo Black',sans-serif;font-size:38px;color:var(--red);line-height:1}
+.step h3{font-family:'Archivo Black',sans-serif;font-size:17px;letter-spacing:.08em;margin:8px 0 8px}
+.step p{color:var(--grey);font-size:13.5px;line-height:1.6}
+.step img{height:96px;margin-top:14px}
+
+/* FACTIONS */
+.factions{display:grid;grid-template-columns:1fr 1fr;border-radius:18px;overflow:hidden;margin-top:30px}
+.fac{padding:30px 22px;text-align:center}
+.fac.red{background:linear-gradient(180deg,#c01712,#8f130c)}
+.fac.blue{background:linear-gradient(180deg,#127ec4,#0d5f96)}
+.fac h3{font-family:'Archivo Black',sans-serif;letter-spacing:.14em;font-size:22px;margin-bottom:14px}
+.fac .grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.fac img{height:84px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4))}
+.fac p{font-family:'Space Mono',monospace;font-size:11px;margin-top:14px;color:rgba(255,255,255,.85)}
+
+/* WORLDS */
+.worlds{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin-top:30px}
+.world{border-radius:14px;padding:22px;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden}
+.world h3{font-family:'Archivo Black',sans-serif;letter-spacing:.1em;font-size:18px}
+.world p{font-family:'Space Mono',monospace;font-size:10.5px;color:rgba(255,255,255,.8);margin-top:5px}
+.world span{position:absolute;top:14px;left:16px;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;background:rgba(0,0,0,.4);padding:3px 9px;border-radius:8px}
+.w1{background:linear-gradient(160deg,#17301e,#3f7d3a)}
+.w2{background:linear-gradient(160deg,#3a1c0a,#a87c3a)}
+.w3{background:linear-gradient(160deg,#14283a,#54788f)}
+.w4{background:linear-gradient(160deg,#2e1010,#8f2f1a)}
+
+/* TOURNAMENTS */
+.torneo{background:linear-gradient(160deg,#141018,#1c1420);border:1px solid #2a222e;border-radius:20px;padding:44px 30px;text-align:center;margin-top:30px}
+.torneo h3{font-family:'Archivo Black',sans-serif;font-size:clamp(22px,3vw,32px);letter-spacing:.06em}
+.torneo .gold{color:var(--gold)}
+.torneo p{color:var(--grey);max-width:520px;margin:14px auto;font-size:14px;line-height:1.7}
+.cta2{
+  display:inline-block;background:#1f2a1c;color:#9dff8a;border:1px solid #3f7d3a;text-decoration:none;
+  font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:.1em;
+  padding:15px 34px;border-radius:12px;margin-top:8px;
+}
+.fine{font-family:'Space Mono',monospace;font-size:9.5px;color:#5a564e;margin-top:18px;line-height:1.6}
+
+/* FAQ */
+.faq details{background:#101016;border:1px solid #1e1e26;border-radius:12px;padding:16px 20px;margin-top:10px}
+.faq summary{font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:.04em;cursor:pointer}
+.faq p{color:var(--grey);font-size:13.5px;line-height:1.7;margin-top:10px}
+
+footer{padding:40px 6vw;text-align:center;border-top:1px solid #16161c}
+footer p{font-family:'Space Mono',monospace;font-size:10px;color:#5a564e;line-height:1.8}
+/* LOOT CHESTS */
+.lchests{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:30px}
+.lchest{background:#101016;border:1px solid #1e1e26;border-top:3px solid var(--c);border-radius:16px;padding:24px 18px;text-align:center}
+.lchest h3{font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:.05em;margin:10px 0 6px}
+.lchest .odd{font-family:'Space Mono',monospace;font-size:10px;color:#8b867b;line-height:1.7}
+.lchest .odd .e{color:#c77dff} .lchest .odd .l{color:#ffd34d}
+.lchest .cprice{font-family:'Archivo Black',sans-serif;font-size:17px;color:var(--gold);margin-top:12px}
+.lchest svg{filter:drop-shadow(0 0 14px var(--c))}
+@media(max-width:640px){ .factions{grid-template-columns:1fr} .vs img{height:120px} }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="heart"></div>
+  <h1>HEARTS</h1>
+  <div class="tag">BET YOUR HEARTS.</div>
+  <p class="sub">The battle royale where every heart you carry <b>can be stolen</b>.
+  Come in with 3. Fall, you drop them. Survive, you loot.<br><b>8 go in. 1 takes it all.</b></p>
+  <div class="vs">
+    <img class="d" src="assets/wolf.png" alt="predator">
+    <img class="p" src="assets/goose.png" alt="prey">
+  </div>
+  <a class="cta" href="index.html">PLAY FREE</a>
+  <div class="mono small">in your browser · no download · you're in within 10 seconds</div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="kick">HOW IT WORKS</div>
+  <h2>Three rules. No mercy.</h2>
+  <div class="steps">
+    <div class="step"><b class="num">1</b><h3>PICK YOUR FIGHTER</h3>
+      <p>28 fighters — predators and prey. They're <b>yours</b>: buy them with hearts, sell them whenever, flex your serial number.</p>
+      <img src="assets/tiger.png" alt="tiger"></div>
+    <div class="step"><b class="num">2</b><h3>SURVIVE 4 WORLDS</h3>
+      <p>Archer towers across jungle, desert, frozen north and volcano. 3 arrows: shoot them, then go grab them. Chests drop wings, boots and shields. The screen wraps around.</p>
+      <img src="assets/eagle.png" alt="eagle"></div>
+    <div class="step"><b class="num">3</b><h3>STEAL IT ALL</h3>
+      <p>Every fall drops hearts on the floor — anyone's. The last one standing <b>banks everything they carry</b>. The storm squeezes it down to a 1v1.</p>
+      <img src="assets/orca.png" alt="orca"></div>
+  </div>
+</section>
+
+<!-- FACTIONS -->
+<section>
+  <div class="kick">PICK A SIDE</div>
+  <h2>Predator… or prey?</h2>
+  <div class="factions">
+    <div class="fac red">
+      <h3>PREDATORS</h3>
+      <div class="grid">
+        <img src="assets/lion.png"><img src="assets/shark.png"><img src="assets/tiger.png"><img src="assets/wolf.png"><img src="assets/croc.png"><img src="assets/leopard.png">
+      </div>
+      <p>Raw power. Red outline. No regrets.</p>
+    </div>
+    <div class="fac blue">
+      <h3>PREY</h3>
+      <div class="grid">
+        <img src="assets/penguin.png"><img src="assets/panda.png"><img src="assets/goose.png"><img src="assets/mouse.png"><img src="assets/giraffe.png"><img src="assets/cat.png">
+      </div>
+      <p>Fast. Smart. Deadly aim.</p>
+    </div>
+  </div>
+</section>
+
+<!-- LOOT CHESTS -->
+<section>
+  <div class="kick">LOOT CHESTS</div>
+  <h2>Crack a chest. Pull a legend.</h2>
+  <p class="sub" style="margin:14px 0 0;text-align:left">The pricier the chest, the better your odds at <b style="color:#c77dff">EPIC</b> and <b style="color:#ffd34d">LEGENDARY</b> fighters — the ones that farm the most hearts. Every fighter has its own power.</p>
+  <div class="lchests">
+    <div class="lchest" style="--c:#b07b3a">
+      <svg viewBox="0 0 80 66" width="72" height="60"><rect x="12" y="30" width="56" height="30" rx="5" fill="#b07b3a"/><path d="M12 30 q28 -22 56 0 v6 h-56 z" fill="#b07b3a"/><rect x="34" y="34" width="12" height="15" rx="2" fill="#3a2a10"/><circle cx="40" cy="41" r="3" fill="#ffe58a"/></svg>
+      <h3>WOOD</h3><div class="odd"><span class="e">EPIC 2%</span><br><span class="l">LEGENDARY 0%</span></div><div class="cprice">60 coins</div>
+    </div>
+    <div class="lchest" style="--c:#c7ccd6">
+      <svg viewBox="0 0 80 66" width="72" height="60"><rect x="12" y="30" width="56" height="30" rx="5" fill="#c7ccd6"/><path d="M12 30 q28 -22 56 0 v6 h-56 z" fill="#c7ccd6"/><rect x="34" y="34" width="12" height="15" rx="2" fill="#3a2a10"/><circle cx="40" cy="41" r="3" fill="#ffe58a"/></svg>
+      <h3>SILVER</h3><div class="odd"><span class="e">EPIC 11%</span><br><span class="l">LEGENDARY 3%</span></div><div class="cprice">180 coins</div>
+    </div>
+    <div class="lchest" style="--c:#ffd34d">
+      <svg viewBox="0 0 80 66" width="72" height="60"><rect x="12" y="30" width="56" height="30" rx="5" fill="#ffd34d"/><path d="M12 30 q28 -22 56 0 v6 h-56 z" fill="#ffd34d"/><rect x="34" y="34" width="12" height="15" rx="2" fill="#3a2a10"/><circle cx="40" cy="41" r="3" fill="#fff4c8"/></svg>
+      <h3>GOLD</h3><div class="odd"><span class="e">EPIC 27%</span><br><span class="l">LEGENDARY 9%</span></div><div class="cprice">450 coins</div>
+    </div>
+    <div class="lchest" style="--c:#7ef0ff">
+      <svg viewBox="0 0 80 66" width="72" height="60"><rect x="12" y="30" width="56" height="30" rx="5" fill="#7ef0ff"/><path d="M12 30 q28 -22 56 0 v6 h-56 z" fill="#7ef0ff"/><rect x="34" y="34" width="12" height="15" rx="2" fill="#2a4a52"/><circle cx="40" cy="41" r="3" fill="#eafcff"/></svg>
+      <h3>DIAMOND</h3><div class="odd"><span class="e">EPIC 42%</span><br><span class="l">LEGENDARY 22%</span></div><div class="cprice">1000 coins</div>
+    </div>
+  </div>
+  <p class="mono" style="font-size:10px;color:#5a564e;margin-top:16px">Earn coins by playing. Open chests free in-game — no purchase required to play.</p>
+</section>
+
+<!-- WORLDS -->
+<section>
+  <div class="kick">THE RUN</div>
+  <h2>Four worlds. One run.</h2>
+  <div class="worlds">
+    <div class="world w1"><span>ROUND 1</span><h3>JUNGLE</h3><p>Thornwood: vines, giant logs and light through the canopy.</p></div>
+    <div class="world w2"><span>ROUND 2</span><h3>DESERT</h3><p>Mirage: gold trim, glyphs and the screen that wraps around.</p></div>
+    <div class="world w3"><span>ROUND 3</span><h3>NORTH</h3><p>Frostfang Keep: snow, icicles and blue flames.</p></div>
+    <div class="world w4"><span>FINAL</span><h3>VOLCANIC</h3><p>Towerforge: lava falls, chains and the final 1v1.</p></div>
+  </div>
+</section>
+
+<!-- TOURNAMENTS -->
+<section>
+  <div class="torneo">
+    <div class="kick">COMING SOON</div>
+    <h3>Tournaments with <span class="gold">real prizes</span></h3>
+    <p>Skill tournaments with an entry fee and a prize pool for the best archers.
+    Top spots take the pot. Join the beta and be one of the first to compete.</p>
+    <a class="cta2" href="https://wa.me/?text=I%20want%20in%20on%20the%20HEARTS%20beta" target="_blank">JOIN THE BETA ON WHATSAPP</a>
+    <div class="fine">Prize tournaments will roll out in stages and in line with the applicable regulations in Mexico.
+    Today HEARTS is free to play with an in-game hearts economy.</div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="kick">QUESTIONS</div>
+  <h2>What everyone asks</h2>
+  <details><summary>Is it free?</summary><p>Yes. Jump in, we gift you your first fighter and 25 hearts. You play right in the browser — nothing to download.</p></details>
+  <details><summary>What happens when I die?</summary><p>You drop a heart on the floor (anyone can grab it) and you're out until the next round. Hit 0 hearts and you're out of the tournament. The last one with hearts banks everything they carry.</p></details>
+  <details><summary>Can I really sell my animals?</summary><p>Yes, in-game: every animal has a unique serial number and you can resell it in the marketplace for hearts.</p></details>
+  <details><summary>When are the real prizes?</summary><p>We're building the prize-pool tournaments. Join the beta on WhatsApp and we'll tell you first.</p></details>
+  <details><summary>Is it like TowerFall?</summary><p>It's a direct homage: limited arrows you grab off the floor, catching arrows by ducking, stacking chest powers… plus the heart battle royale you won't find anywhere else.</p></details>
+</section>
+
+<footer>
+  <p>HEARTS · Battle Royale — made in Morelia, Mexico<br>
+  Sound &amp; music: Juhani Junkala (CC0, OpenGameArt) · A game by André</p>
+</footer>
+
+</body>
+</html>

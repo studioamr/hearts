@@ -1,0 +1,6 @@
+.DS_Store
+*.raw.png
+.claude/
+node_modules/
+_batch.txt
+_status.txt

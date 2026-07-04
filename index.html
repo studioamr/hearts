@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEARTS — Battle Royale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=49">
+</head>
+<body>
+
+<!-- ============ INTRO ============ -->
+<section id="screen-intro" class="screen active">
+  <canvas id="intro-canvas" width="832" height="640"></canvas>
+</section>
+
+<!-- ============ LOGIN ============ -->
+<section id="screen-login" class="screen">
+  <div class="split">
+    <div class="side side-red">
+      <div class="side-head">
+        <span class="side-kicker">BATTLE ROYALE</span>
+        <h1 class="side-title">HEARTS</h1>
+      </div>
+      <div class="roster" id="roster-red"></div>
+    </div>
+    <div class="side side-blue">
+      <div class="side-head right">
+        <h1 class="side-title" id="login-user-title">*USUARIO*</h1>
+        <span class="side-kicker">WALLET</span>
+      </div>
+      <div class="roster" id="roster-blue"></div>
+    </div>
+  </div>
+  <div class="login-card">
+    <div class="login-row"><label>LOG IN</label><input id="login-name" maxlength="14" placeholder="tu nombre" autocomplete="off"></div>
+    <div class="login-row"><label>PASSWORD</label><input id="login-pass" type="password" placeholder="••••••" autocomplete="off"></div>
+    <button id="btn-enter" class="btn-flat">ENTER</button>
+    <div class="login-sub">BATTLE ROYALE · DEPREDADORES VS PRESAS</div>
+  </div>
+</section>
+
+<!-- ============ LOBBY ============ -->
+<section id="screen-lobby" class="screen">
+<div class="lobby-wrap">
+  <header class="lobby-top">
+    <div class="brand"><span class="brand-kicker">BATTLE ROYALE</span><span class="brand-name">HEARTS</span></div>
+    <div class="top-actions">
+      <button class="btn-mute" id="btn-mute" title="música y sonido">SONIDO ON</button>
+      <div class="wallet" id="wallet-chip">
+        <div class="heart-px sm" id="wallet-heart"><span id="wallet-hearts">0</span></div>
+        <span class="wallet-label">WALLET</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="lobby-grid">
+    <!-- panel: la carta del guerrero -->
+    <section class="panel">
+      <div class="panel-head">TU GUERRERO</div>
+      <div class="stats-card" id="stats-card">
+        <div class="sc-row"><label>DIFFICULTY</label><div class="pips" id="sc-dif"></div></div>
+        <div class="sc-row"><label>SPEED</label><div class="pips" id="sc-spd"></div></div>
+        <div class="sc-row"><label>HEALTH</label><div class="pips" id="sc-hp"></div></div>
+        <div class="sc-row"><label>R</label><div class="pips" id="sc-r"></div></div>
+      </div>
+      <div class="avatar-value" id="avatar-value"></div>
+    </section>
+
+    <!-- héroe al centro -->
+    <section class="lobby-hero">
+      <div class="user-plate" id="lobby-username">*USUARIO*</div>
+      <div class="lobby-stats">
+        <div class="lvl" id="lobby-lvl">LVL. 1</div>
+        <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
+      </div>
+      <div class="pedestal-wrap">
+        <canvas id="lobby-avatar" width="320" height="360"></canvas>
+        <div class="pedestal"></div>
+        <div class="avatar-meta"><span id="avatar-name">—</span><span class="token-id" id="avatar-token">#—</span></div>
+      </div>
+      <button class="btn-flat btn-ranked" id="btn-ranked">RANKED<small>FEE: 3 <span class="mini-heart">♥</span><span class="mini-heart">♥</span><span class="mini-heart">♥</span></small></button>
+      <div class="lobby-actions">
+        <button class="btn-flat" id="btn-leaderboard">LEADERBOARD</button>
+        <button class="btn-flat btn-market" id="btn-market">ANIMALES</button>
+        <button class="btn-flat" id="btn-help">¿CÓMO JUGAR?</button>
+      </div>
+    </section>
+
+    <!-- panel: colección y récord -->
+    <section class="panel">
+      <div class="panel-head">TUS GUERREROS</div>
+      <div class="own-row" id="own-row"></div>
+      <div class="panel-head mt">TU RÉCORD</div>
+      <div class="lobby-record" id="lobby-record"></div>
+    </section>
+  </main>
+</div>
+</section>
+
+<!-- ============ MARKETPLACE ============ -->
+<section id="screen-market" class="screen">
+  <div class="split">
+    <div class="side side-red">
+      <div class="side-head"><span class="side-kicker">DEPREDADORES</span><h2 class="side-title sm">HEARTS</h2></div>
+      <div class="market-grid" id="market-red"></div>
+    </div>
+    <div class="side side-blue">
+      <div class="side-head right"><h2 class="side-title sm">ANIMALES</h2><span class="side-kicker">PRESAS</span></div>
+      <div class="market-grid" id="market-blue"></div>
+    </div>
+  </div>
+  <div class="market-bar">
+    <button class="btn-flat" id="btn-market-back">← LOBBY</button>
+    <div class="market-title">ANIMALES · 50 GUERREROS</div>
+    <div class="wallet mini"><div class="heart-px sm"><span id="market-hearts">0</span></div></div>
+  </div>
+</section>
+
+
+<!-- ============ COFRES (gacha) ============ -->
+<section id="screen-chests" class="screen">
+  <div class="armory">
+    <div class="armory-bar">
+      <button class="btn-flat" id="btn-chests-back">← LOBBY</button>
+      <div class="market-title">COFRES</div>
+      <div class="wallet mini"><div class="heart-px sm"><span id="chests-hearts">0</span></div></div>
+    </div>
+    <div class="chests-intro">Entre <b>más caro</b> el cofre, más chance de sacar animales <b style="color:#c77dff">ÉPICOS</b> y <b style="color:#ffd34d">LEGENDARIOS</b> — los mejores para farmear ♥ y ganar.</div>
+    <div class="chest-grid" id="chest-grid"></div>
+  </div>
+  <!-- overlay de apertura -->
+  <div class="chest-reveal" id="chest-reveal">
+    <div class="reveal-inner">
+      <canvas id="reveal-canvas" width="380" height="360"></canvas>
+      <div class="reveal-rarity" id="reveal-rarity"></div>
+      <div class="reveal-name" id="reveal-name"></div>
+      <div class="reveal-power" id="reveal-power"></div>
+      <div class="reveal-note" id="reveal-note"></div>
+      <div class="reveal-actions">
+        <button class="btn-flat" id="reveal-again">ABRIR OTRO</button>
+        <button class="btn-flat btn-ranked" id="reveal-close">GUARDAR</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LEADERBOARD ============ -->
+<section id="screen-leaderboard" class="screen">
+  <div class="board-wrap">
+    <div class="board-head">
+      <button class="btn-flat" id="btn-board-back">← LOBBY</button>
+      <h2>LEADERBOARD</h2>
+      <div class="board-season">TEMPORADA 1</div>
+    </div>
+    <div class="board-list" id="board-list"></div>
+  </div>
+</section>
+
+<!-- ============ GAME ============ -->
+<section id="screen-game" class="screen">
+  <div class="game-hud">
+    <div class="hud-left"><span class="hud-brand">HEARTS</span><span class="hud-phase" id="hud-phase">FASE 1</span></div>
+    <div class="hud-mid" id="hud-players"></div>
+    <div class="hud-right"><div class="heart-px sm"><span id="hud-pot">12</span></div><span class="hud-pot-label">POT</span></div>
+  </div>
+  <div class="game-stage">
+    <canvas id="game-canvas" width="832" height="640"></canvas>
+    <div class="phase-intro" id="phase-intro">
+      <div class="phase-card">
+        <div class="phase-kicker" id="intro-kicker">FASE 1 / 3</div>
+        <div class="phase-name" id="intro-name">HEARTS MAN</div>
+        <div class="phase-desc" id="intro-desc"></div>
+        <div class="phase-go" id="intro-go">3</div>
+      </div>
+    </div>
+    <div class="scoreboard" id="scoreboard">
+      <div class="sb-kicker">BATTLE ROYALE</div>
+      <div class="sb-brand">HEARTS</div>
+      <div class="sb-eco" id="sb-eco">DESERT</div>
+      <div class="sb-sub">RANKED MATCH</div>
+      <div class="sb-rows" id="sb-rows"></div>
+    </div>
+    <div class="results" id="results">
+      <div class="sb-kicker">BATTLE ROYALE</div>
+      <div class="sb-brand">HEARTS</div>
+      <div class="sb-sub" style="margin-top:34px">RANKED MATCH</div>
+      <div class="results-title" id="results-title">WINNER</div>
+      <div class="results-meta">
+        <span id="results-name">—</span>
+        <span class="results-hearts" id="results-hearts">+12 ♥</span>
+      </div>
+      <div class="results-place" id="results-place"></div>
+      <canvas id="results-sprite" width="180" height="170"></canvas>
+      <div class="results-cash" id="results-cash"></div>
+      <div class="results-xp" id="results-xp"></div>
+      <button class="btn-flat" id="btn-results-lobby">VOLVER AL LOBBY</button>
+    </div>
+  </div>
+  <div class="game-controls" id="game-controls"></div>
+</section>
+
+<!-- ============ MODALS ============ -->
+<div class="modal-back" id="modal-buy">
+  <div class="modal">
+    <canvas id="buy-canvas" width="200" height="220"></canvas>
+    <h3 id="buy-name">—</h3>
+    <div class="buy-side" id="buy-side">DEPREDADOR</div>
+    <div class="buy-stats" id="buy-stats"></div>
+    <div class="buy-price" id="buy-price"></div>
+    <div class="modal-actions">
+      <button class="btn-flat btn-buy" id="btn-buy-select" style="display:none">USAR ESTE</button>
+      <button class="btn-flat" id="btn-buy-cancel">CERRAR</button>
+    </div>
+    <div class="buy-note" id="buy-note"></div>
+  </div>
+</div>
+
+<div class="modal-back" id="modal-wallet">
+  <div class="modal">
+    <h3>WALLET</h3>
+    <div class="wallet-big"><span id="modal-hearts">0</span> ♥</div>
+    <div class="wallet-cash">≈ $<span id="modal-mxn">0</span> MXN <em>(demo)</em></div>
+    <button class="btn-flat cofres-btn" id="btn-chests" style="margin-top:14px">ABRIR COFRES</button>
+    <button class="btn-flat" id="btn-daily" style="margin-top:8px">BONUS DIARIO +5 ♥</button>
+    <button class="btn-flat btn-buy" id="btn-cashout" style="margin-top:8px">CASH OUT</button>
+    <div class="buy-note">Economía simulada. La versión real requiere blockchain + pasarela de pagos.</div>
+    <div class="modal-actions"><button class="btn-flat" id="btn-wallet-close">CERRAR</button></div>
+  </div>
+</div>
+
+<div class="modal-back" id="modal-help">
+  <div class="modal" style="text-align:left;max-width:440px;width:min(440px,92vw)">
+    <h3 style="text-align:center">¿CÓMO JUGAR?</h3>
+    <div class="help-body">
+      <p><b>EL JUEGO:</b> battle royale de 8. Entras pagando 3 ♥ — esos corazones los CARGAS en la arena. Rondas por 4 mundos hasta que quede uno. <b>El último con corazones banquea todo lo que carga.</b></p>
+      <p><b>MORIR:</b> sueltas 1 ♥ al piso (cualquiera lo roba) y quedas fuera hasta la siguiente ronda. Con 0 ♥ estás eliminado. Desde la ronda 5, la tormenta ⛈ cobra corazones.</p>
+      <p><b>FLECHAS:</b> solo 3. Se clavan donde caen — ve por ellas. <b>Agáchate para ATRAPAR</b> flechas enemigas.</p>
+      <p><b>COFRES:</b> alas (planeas + salto extra), botas (salto alto), escudo burbuja, +♥, +flechas. Se combinan y se pierden al morir.</p>
+      <p><b>CONTROLES:</b> FLECHAS/WASD mover · ESPACIO saltar (doble) · X o J disparar (+ARRIBA apunta) · ABAJO agacharte/atrapar.</p>
+      <p><b>MARKET:</b> compra guerreros con ♥ (los rojos son depredadores, los azules presas). Son tuyos: véndelos al 70%.</p>
+    </div>
+    <div class="modal-actions"><button class="btn-flat" id="btn-help-close">¡A JUGAR!</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/audio.js?v=49"></script>
+<script src="js/sprites.js?v=49"></script>
+<script src="js/mapart.js?v=49"></script>
+<script src="js/intro.js?v=49"></script>
+<script src="js/tutorial.js?v=49"></script>
+<script src="js/themes.js?v=49"></script>
+<script src="js/data.js?v=49"></script>
+<script src="js/weapons.js?v=49"></script>
+<script src="js/ui.js?v=49"></script>
+<script src="js/bomberman.js?v=49"></script>
+<script src="js/towerfall.js?v=49"></script>
+<script src="js/bros.js?v=49"></script>
+<script src="js/match.js?v=49"></script>
+<script src="js/main.js?v=49"></script>
+</body>
+</html>
