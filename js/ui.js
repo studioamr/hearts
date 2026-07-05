@@ -721,7 +721,7 @@ function startMenuBG(){
 function enterMenu(){
   const st=DATA.state();
   $('#menu-hearts').textContent=st.hearts;
-  const b=$('#btn-mute-menu'); if(b&&window.MUSIC) b.textContent=MUSIC.isMuted()?'SONIDO OFF':'SONIDO ON';
+  const b=$('#btn-mute-menu'); if(b&&window.MUSIC) b.textContent=MUSIC.isMuted()?'SOUND OFF':'SOUND ON';
   show('#screen-menu');
   startMenuBG();
 }
@@ -729,16 +729,14 @@ function initMenu(){
   const go=fn=>()=>{ SFX.click(); fn(); };
   $('#mm-versus').addEventListener('click', go(()=>MATCH.openModes()));
   $('#mm-coop').addEventListener('click', go(()=>MATCH.startMode(DATA.byMode['quest'])));
-  $('#mm-trials').addEventListener('click', go(()=>MATCH.startMode(DATA.byMode['trials'])));
   $('#mm-animals').addEventListener('click', go(()=>{ renderMarket(); show('#screen-market'); }));
   $('#mm-store').addEventListener('click', go(()=>{ renderChests(); updateHearts(); show('#screen-chests'); }));
   $('#mm-friends').addEventListener('click', go(()=>openParty()));
   $('#mm-monito').addEventListener('click', go(()=>enterLobby()));
-  $('#mm-help').addEventListener('click', go(()=>$('#modal-help').classList.add('show')));
   $('#wallet-menu').addEventListener('click',()=>{ const st=DATA.state(); fillProfile();
     const today=new Date().toDateString(); $('#btn-daily').disabled=st.lastDaily===today; $('#btn-daily').style.opacity=st.lastDaily===today?.5:1;
     $('#modal-wallet').classList.add('show'); SFX.click(); });
-  const mb=$('#btn-mute-menu'); if(mb) mb.addEventListener('click',()=>{ if(window.MUSIC){ MUSIC.toggleMute(); mb.textContent=MUSIC.isMuted()?'SONIDO OFF':'SONIDO ON'; } });
+  const mb=$('#btn-mute-menu'); if(mb) mb.addEventListener('click',()=>{ if(window.MUSIC){ MUSIC.toggleMute(); mb.textContent=MUSIC.isMuted()?'SOUND OFF':'SOUND ON'; } });
   const back=$('#btn-lobby-menu'); if(back) back.addEventListener('click',()=>{ SFX.click(); enterMenu(); });
 }
 
