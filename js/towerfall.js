@@ -27,7 +27,11 @@ function start(canvas, players, cfg, onEnd, eco){
     if(o.x<-10) o.x+=W+20; else if(o.x>W+10) o.x-=W+20;
     if(WRAPY){ if(o.y>H+24) o.y-=H+48; else if(o.y<-24) o.y+=H+48; }
   }
-  const DUR=cfg.duration||60, MIN=cfg.minAlive||2;
+  const GM=cfg.gameMode||{id:'lms',respawn:0};
+  const GMID=GM.id, TEAMS=!!GM.teams, RESPAWN=GM.respawn||0;
+  const DUR=cfg.duration||GM.dur||60, MIN=cfg.minAlive||2;
+  const skulls=[], targets=[];               // HEADHUNTERS calaveras · TRIALS blancos
+  const result={mode:GMID}; let wave=1, questDone=false, questLost=false, targetT=0;
 
   const ents=players.map((p,i)=>{
     const st=p.animal.stats;
@@ -48,8 +52,16 @@ function start(canvas, players, cfg, onEnd, eco){
       spd, think:Math.random()*0.3, mvx:0, wantJump:false, wantShootDir:null,
       inv:1.2, runPh:Math.random()*6, landT:0, crouch:false, crouchT:0,
       dodgeT:0, dodgeCd:0, ddx:0, ddy:0, dropT:0,
-      ultCd:2, rageT:0, phaseT:0, blitzT:0, skyfall:false, ultFlash:0 };  // ULTIMATE (R) por animal
+      ultCd:2, rageT:0, phaseT:0, blitzT:0, skyfall:false, ultFlash:0,  // ULTIMATE (R) por animal
+      team:(p.team!=null?p.team:i), enemy:!!p.enemy, respawnT:0 };       // MODOS: equipo / enemigo / respawn
   });
+  function respawnEnt(e){
+    const sp=layout.spawns[Math.floor(Math.random()*layout.spawns.length)];
+    e.x=sp[0]+(Math.random()-.5)*30; e.y=sp[1]-4; e.vx=0; e.vy=0;
+    e.dead=false; e.p.koRound=false; e.inv=1.5; e.respawnT=0;
+    e.ammo=e.weap.kind==='bow'?e.weap.ammo:0; e.shield=(e.pow==='shield'); e.wings=false; e.boots=false; e.special=null;
+    parts.spawn(e.x,e.y-e.h/2,'#ffffff',18,240);
+  }
   const espd=e=>{ let s=(e.pow==='berserk'&&e.p.hp<=1)?e.spd*1.4:e.spd; if(e.rageT>0)s*=1.5; if(e.phaseT>0)s*=1.25; return s; };
   const MAXA=6;
   const arrows=[], hearts=[], chests=[], floats=[], stuck=[], corpses=[], brambles=[];
@@ -102,6 +114,7 @@ function start(canvas, players, cfg, onEnd, eco){
   }
   function kill(e,by,dir){
     if(e.dead||e.inv>0) return;
+    if(TEAMS && by && by!==e && by.team===e.team) return;   // FUEGO AMIGO OFF en equipos/co-op
     if(e.shield){
       e.shield=false; e.inv=1.2;
       parts.spawn(e.x,e.y-e.h/2,'#9ce8ff',18,240);
@@ -113,10 +126,15 @@ function start(canvas, players, cfg, onEnd, eco){
     // sueltas tus flechas al piso (recuperables) y pierdes tus poderes
     for(let i=0;i<e.ammo;i++) stickArrow(e.x+(Math.random()-.5)*50, e.y-4, Math.PI/2);
     e.ammo=0; e.wings=false; e.boots=false;
-    // pierdes 1 vida y quedas fuera de la ronda. NO cae ningún corazón al piso (máximo 3, nadie suma).
-    if(e.p.hp>0){ e.p.hp--; }
+    // MODOS: cuenta la kill + suelta CALAVERA (headhunters)
+    if(by && by!==e && by.p){ by.p.kills=(by.p.kills||0)+1; }
+    if(GMID==='hunt'){ skulls.push({x:e.x,y:e.y-8,vx:(Math.random()-.5)*160,vy:-230,onG:false,t:0}); }
     addCorpse(e,dir,by);   // el mono sale volando con la flecha y se acuesta
     e.dead=true; e.p.koRound=true; SFX.die();
+    // vidas / RESPAWN según el modo
+    if(GMID==='lms'){ if(e.p.hp>0) e.p.hp--; e.respawnT=(e.p.hp>0)?RESPAWN:0; }   // sin vidas = out
+    else if(e.enemy){ e.respawnT=0; }                                            // enemigos de QUEST no reviven
+    else if(RESPAWN>0){ e.respawnT=RESPAWN; }                                    // reapareces
     hudRefresh();
   }
   function shoot(e,dx,dy){
@@ -154,6 +172,19 @@ function start(canvas, players, cfg, onEnd, eco){
   }
   const active=()=>ents.filter(e=>!e.dead);
   const living=active;
+  // ---- MARCADORES por modo ----
+  const topSkulls=()=>ents.reduce((m,e)=>Math.max(m,e.p.skulls||0),0);
+  const teamKills=t=>ents.filter(e=>e.team===t).reduce((s,e)=>s+(e.p.kills||0),0);
+  function computeResult(){
+    const me=ents.find(e=>!e.p.bot);
+    result.time=Math.round(time);
+    if(GMID==='lms'){ const al=ents.filter(e=>e.p.hp>0); result.winner=(al[0]||ents[0]); result.win=!!(me&&me.p.hp>0); }
+    else if(GMID==='hunt'){ const rk=ents.slice().sort((a,b)=>(b.p.skulls||0)-(a.p.skulls||0));
+      result.winner=rk[0]; result.ranking=rk.slice(0,4).map(e=>({name:e.p.name,skulls:e.p.skulls||0})); result.win=!!(me&&rk[0]&&rk[0].p===me.p); }
+    else if(GMID==='tdm'){ const a=teamKills(0),b=teamKills(1); result.t0=a; result.t1=b; result.winTeam=(a>=b?0:1); result.win=!!(me&&me.team===result.winTeam); }
+    else if(GMID==='quest'){ result.win=questDone; result.wave=Math.min(wave,GM.waves||3); result.kills=me?(me.p.kills||0):0; }
+    else if(GMID==='trials'){ result.score=me?(me.p.score||0):0; result.win=result.score>=(GM.goal||20); }
+  }
 
   // DODGE estilo TowerFall: dash con invencibilidad en 8 direcciones; atrapa flechas al esquivar
   const DODGE_DUR=0.26, DODGE_CD=0.6, DODGE_SPD=440;
@@ -249,7 +280,7 @@ function start(canvas, players, cfg, onEnd, eco){
   }
 
   function botThink(e){
-    const foes=living().filter(o=>o!==e && o.phaseT<=0);   // a los FANTASMA no se les puede apuntar
+    const foes=living().filter(o=>o!==e && o.phaseT<=0 && (!TEAMS || o.team!==e.team));   // FANTASMA no; ni tu equipo
     // ULTIMATE del bot: si hay rival cerca (o está en peligro), suelta su R
     if(ultReady(e)){
       const near=foes.reduce((m,o)=>Math.min(m,Math.abs(o.x-e.x)),1e9);
@@ -343,7 +374,7 @@ function start(canvas, players, cfg, onEnd, eco){
         } else if(e.wantShootDir){ shoot(e,e.wantShootDir[0],e.wantShootDir[1]); e.wantShootDir=null; }
       });
       ents.forEach(e=>{
-        if(e.dead) return;
+        if(e.dead){ if(e.respawnT>0){ e.respawnT-=dt; if(e.respawnT<=0) respawnEnt(e); } return; }
         e.inv=Math.max(0,e.inv-dt); e.cd=Math.max(0,e.cd-dt);
         e.swing=Math.max(0,e.swing-dt); e.drawT=Math.max(0,e.drawT-dt);
         e.crouchT=Math.max(0,e.crouchT-dt); e.dodgeCd=Math.max(0,e.dodgeCd-dt); e.dropT=Math.max(0,e.dropT-dt);
@@ -457,21 +488,47 @@ function start(canvas, players, cfg, onEnd, eco){
         } else { const tgt=(c.spin>=0?1:-1)*Math.PI/2; c.rot+=(tgt-c.rot)*Math.min(1,dt*12); }
       }
       chestT-=dt; if(chestT<=0){ chestT=9; spawnChest(); }
-      // muerte súbita al final del tiempo
-      if(time>DUR-15){
-        sudden-=dt;
-        if(sudden<=0){ sudden=1.6;
-          const l=living();
-          const tg=l[Math.floor(Math.random()*l.length)];
-          if(tg) arrows.push({x:tg.x+(Math.random()-.5)*60,y:24,vx:0,vy:520,owner:null,t:4,grace:0});
+      // HEADHUNTERS: las calaveras caen y cualquiera las recoge
+      for(let i=skulls.length-1;i>=0;i--){ const s=skulls[i];
+        if(!s.onG){ s.vy+=GRAV*dt; s.x+=s.vx*dt; s.y+=s.vy*dt; s.vx*=Math.pow(0.1,dt);
+          for(const pl of PLATS){ if(s.vy>0&&s.x>pl.x&&s.x<pl.x+pl.w&&s.y>=pl.y-2&&s.y<pl.y+22){ s.y=pl.y-8; s.onG=true; break; } }
+          if(s.y>H-14){ s.y=H-14; s.onG=true; } }
+        s.t+=dt; if(s.t>14){ skulls.splice(i,1); continue; }
+        for(const e of ents){ if(e.dead) continue;
+          if(Math.abs(s.x-e.x)<26 && Math.abs((e.y-e.h*0.5)-s.y)<34){ e.p.skulls=(e.p.skulls||0)+1; SFX.coin();
+            parts.spawn(s.x,s.y,'#c77dff',10,170); say(e.x,e.y-e.h-12,'+1 💀','#c77dff'); skulls.splice(i,1); break; } }
+      }
+      // TRIALS: aparecen blancos flotantes; al flecharlos suman puntos
+      if(GMID==='trials'){ targetT-=dt;
+        if(targetT<=0 && targets.length<4){ targetT=0.7; targets.push({x:60+Math.random()*(W-120), y:70+Math.random()*(H-280), r:20, vy:(Math.random()<.5?1:-1)*(30+Math.random()*45)}); }
+        for(const tg of targets){ tg.y+=tg.vy*dt; if(tg.y<55||tg.y>H-150) tg.vy*=-1; }
+        for(let ai=arrows.length-1;ai>=0;ai--){ const a=arrows[ai]; let hit=false;
+          for(let ti=targets.length-1;ti>=0;ti--){ const tg=targets[ti];
+            if(Math.hypot(a.x-tg.x,a.y-tg.y)<tg.r+6){ targets.splice(ti,1); const me=ents[0]; if(me)me.p.score=(me.p.score||0)+1; SFX.coin(); parts.spawn(tg.x,tg.y,'#ff9e3c',16,240); hit=true; break; } }
+          if(hit) arrows.splice(ai,1);
         }
       }
-      if(time>DUR || active().length<=MIN){ over=true; endTimer=1.1; }
+      // QUEST: la oleada avanza con las kills del equipo; ganas al llegar a la meta
+      if(GMID==='quest'){ const g=GM.questGoal||18, ws=GM.waves||3, k=teamKills(0);
+        wave=Math.min(ws, Math.floor(k/(g/ws))+1); if(k>=g) questDone=true; }
+      // MUERTE SÚBITA (solo LMS): al final del tiempo llueven flechas
+      if(GMID==='lms' && time>DUR-15){
+        sudden-=dt;
+        if(sudden<=0){ sudden=1.6; const l=living(); const tg=l[Math.floor(Math.random()*l.length)];
+          if(tg) arrows.push({x:tg.x+(Math.random()-.5)*60,y:24,vx:0,vy:520,owner:null,t:4,grace:0}); }
+      }
+      // FIN según el MODO
+      let endNow=false;
+      if(GMID==='lms'){ if(ents.filter(e=>e.p.hp>0).length<=1) endNow=true; }
+      else if(GMID==='hunt'){ if(topSkulls()>=(GM.goal||10)) endNow=true; }
+      else if(GMID==='tdm'){ if(teamKills(0)>=(GM.goal||15)||teamKills(1)>=(GM.goal||15)) endNow=true; }
+      else if(GMID==='quest'){ if(questDone||questLost) endNow=true; }
+      else if(GMID==='trials'){ if((ents[0]&&(ents[0].p.score||0)>=(GM.goal||20))) endNow=true; }
+      if(time>DUR) endNow=true;
+      if(endNow){ over=true; endTimer=1.1; }
     } else {
       endTimer-=dt;
-      if(endTimer<=0){
-        cancelAnimationFrame(raf); onEnd(); return;   // sin barrido de corazones (nadie suma)
-      }
+      if(endTimer<=0){ cancelAnimationFrame(raf); computeResult(); onEnd(result); return; }
     }
 
     parts.update(dt);
@@ -525,6 +582,16 @@ function start(canvas, players, cfg, onEnd, eco){
     });
     // corazones sueltos
     hearts.forEach(h=>M.drawHeart(ctx,h.x,h.y-8,1.1,time+h.t));
+    // CALAVERAS (headhunters)
+    skulls.forEach(s=>{ ctx.save(); ctx.translate(s.x,s.y+Math.sin(time*4+s.x)*2);
+      ctx.font='22px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.shadowColor='#c77dff'; ctx.shadowBlur=10; ctx.fillText('💀',0,0); ctx.restore(); });
+    ctx.textBaseline='alphabetic'; ctx.shadowBlur=0;
+    // BLANCOS (trials)
+    targets.forEach(tg=>{ ctx.save(); ctx.translate(tg.x,tg.y);
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,tg.r,0,7); ctx.fill();
+      ctx.fillStyle='#ff5a4d'; ctx.beginPath(); ctx.arc(0,0,tg.r*0.66,0,7); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,tg.r*0.33,0,7); ctx.fill(); ctx.restore(); });
     // flechas
     arrows.forEach(a=>{
       const ang=Math.atan2(a.vy,a.vx);
@@ -625,8 +692,14 @@ function start(canvas, players, cfg, onEnd, eco){
     ctx.fillStyle=time>DUR-15?'#ff8a80':'#e8f2f8';
     ctx.font='bold 14px "Space Mono"'; ctx.textAlign='center';
     ctx.fillText(Math.max(0,Math.ceil(DUR-time))+'s',416,22);
-    if(time>DUR-15){ ctx.fillStyle='#ff8a80'; ctx.font='bold 13px "Space Mono"';
-      ctx.fillText('¡MUERTE SÚBITA!',W/2,48); }
+    // MARCADOR del modo
+    ctx.font='900 14px "Space Mono"'; ctx.textAlign='center';
+    if(GMID==='hunt'){ const me=ents.find(e=>!e.p.bot);
+      ctx.fillStyle='#d9a6ff'; ctx.fillText('💀 '+(me?(me.p.skulls||0):0)+' / '+(GM.goal||10)+'  · líder '+topSkulls(),W/2,48); }
+    else if(GMID==='tdm'){ ctx.fillStyle='#7fd0ff'; ctx.fillText('AZUL '+teamKills(0)+'  —  '+teamKills(1)+' ROJO  (meta '+(GM.goal||15)+')',W/2,48); }
+    else if(GMID==='quest'){ ctx.fillStyle='#7fe0a0'; ctx.fillText('OLEADA '+wave+'/'+(GM.waves||3)+'  ·  kills '+teamKills(0)+'/'+(GM.questGoal||18),W/2,48); }
+    else if(GMID==='trials'){ const me=ents[0]; ctx.fillStyle='#ffc078'; ctx.fillText('🎯 BLANCOS '+(me?(me.p.score||0):0)+' / '+(GM.goal||20),W/2,48); }
+    else if(GMID==='lms'&&time>DUR-15){ ctx.fillStyle='#ff8a80'; ctx.font='bold 13px "Space Mono"'; ctx.fillText('¡MUERTE SÚBITA!',W/2,48); }
     const meE=ents.find(e=>!e.p.bot);
     if(meE&&meE.dead&&!over){
       ctx.fillStyle='rgba(10,10,14,.55)'; ctx.fillRect(0,72,W,54);

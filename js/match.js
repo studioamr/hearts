@@ -325,12 +325,102 @@ function openRanks(){
   SFX.click();
 }
 
+// ================= MODOS DE JUEGO (la ÚNICA forma de jugar) =================
+function openModes(){
+  const grid=$('#modes-list'); if(!grid) return; grid.innerHTML='';
+  DATA.MODES.forEach(m=>{
+    const card=document.createElement('div'); card.className='mode-card';
+    card.innerHTML='<div class="mc-ic" style="background:'+m.color+'">'+m.icon+'</div>'+
+      '<div class="mc-info"><div class="mc-nm" style="color:'+m.color+'">'+m.name+'</div>'+
+      '<div class="mc-bl">'+m.blurb+'</div></div>'+
+      '<button class="mode-go btn-flat">JUGAR</button>';
+    card.querySelector('.mode-go').onclick=()=>{ SFX.click(); $('#modal-modes').classList.remove('show'); startMode(m); };
+    grid.appendChild(card);
+  });
+  $('#modal-modes').classList.add('show'); SFX.click();
+}
+function startMode(mode){
+  if(window.TUT) TUT.onRanked();
+  const st=DATA.state(), an=DATA.byId[st.selected];
+  if(!an){ SFX.deny(); UI.toast('Necesitas un guerrero. Compra tu monito en la tienda.'); return; }
+  st.matches++; DATA.save();
+  const me={name:st.name||'TÚ', animal:an, bot:false, weapon:DATA.equipped()};
+  const bots=DATA.randomBots(3, an.id);
+  let players;
+  if(mode.id==='trials'){ players=[Object.assign(me,{team:0,color:COLORS[0]})]; }
+  else if(mode.id==='tdm'){
+    players=[ Object.assign({},me,{team:0,color:'#4dd2ff'}),
+              Object.assign({},bots[0],{team:0,color:'#7fd0ff'}),
+              Object.assign({},bots[1],{team:1,color:'#ff5a4d'}),
+              Object.assign({},bots[2],{team:1,color:'#ff9e7a'}) ];
+  }
+  else if(mode.id==='quest'){
+    players=[ Object.assign({},me,{team:0,color:'#57d977'}),
+              Object.assign({},bots[0],{team:0,color:'#9dff8a'}),
+              Object.assign({},bots[1],{team:1,color:'#ff5a4d',enemy:true}),
+              Object.assign({},bots[2],{team:1,color:'#c0392b',enemy:true}) ];
+  }
+  else { // lms, hunt
+    players=[Object.assign({},me,{team:0,color:COLORS[0]})];
+    bots.forEach((b,i)=>players.push(Object.assign({},b,{team:i+1,color:COLORS[(i+1)%COLORS.length]})));
+  }
+  players.forEach(p=>{ p.hp=(mode.id==='lms'?(mode.lives||3):1); p.elim=false; p.koRound=false; p.kills=0; p.skulls=0; p.score=0; if(!p.weapon)p.weapon=DATA.byWeapon['bow_wood']; });
+  current={ players, mode };
+  $('#results').classList.remove('show'); $('#scoreboard').classList.remove('show');
+  UI.show('#screen-game'); launchArena();
+}
+function launchArena(){
+  const m=current, mode=m.mode, eco=ECOS[Math.floor(Math.random()*ECOS.length)];
+  $('#hud-pot').textContent=mode.icon; const lbl=document.querySelector('.hud-pot-label'); if(lbl)lbl.textContent=mode.id.toUpperCase();
+  KIT.updateHudPlayers(m.players, p=>!p.koRound);
+  const intro=$('#phase-intro'), MODE=window.TOWERFALL, world=(MODE.mapNames[eco.id]||eco.name);
+  $('#intro-kicker').textContent=mode.icon+'  '+mode.name;
+  $('#intro-name').textContent=mode.name+' · '+world;
+  $('#intro-desc').textContent=mode.blurb;
+  $('#hud-phase').textContent=mode.name+' · '+eco.name;
+  $('#game-controls').textContent=MODE.controls;
+  intro.classList.add('show'); SFX.phase(); if(window.MUSIC)MUSIC.battle(0);
+  let n=3; $('#intro-go').textContent=n; SFX.go();
+  const iv=setInterval(()=>{ n--;
+    if(n>0){ $('#intro-go').textContent=n; SFX.count(); }
+    else { clearInterval(iv); $('#intro-go').textContent='GO!'; SFX.go();
+      setTimeout(()=>{ intro.classList.remove('show');
+        const cfg={ duration:mode.dur, gameMode:mode, minAlive:1, variant:Math.floor(Math.random()*3), rain:0 };
+        MODE.start($('#game-canvas'), m.players, cfg, onModeEnd, eco.id);
+      },350);
+    }
+  },800);
+}
+function onModeEnd(result){ showModeResult(result||{mode:current.mode.id}); }
+function showModeResult(r){
+  const mode=current.mode, st=DATA.state(), win=!!r.win, me=current.players[0];
+  if(win) st.wins++;
+  const xp=win?60:25, lu=DATA.gainXP(xp); DATA.save(); UI.updateHearts();
+  $('#results-title').textContent = win?'¡GANASTE!':(mode.id==='trials'?'¡TIEMPO!':'FIN');
+  $('#results-place').textContent = mode.icon+' '+mode.name;
+  $('#results-name').textContent = me?(me.name+' · '+me.animal.name):'—';
+  let s1='', s2='';
+  if(mode.id==='lms'){ s1=win?'ÚLTIMO EN PIE':'eliminado'; s2=win?'sobreviviste a todos':'te ganaron'; }
+  else if(mode.id==='hunt'){ s1='💀 '+((r.ranking&&r.ranking[0])?r.ranking[0].skulls:0)+' calaveras (líder)'; s2=win?'¡juntaste más!':'te faltaron'; }
+  else if(mode.id==='tdm'){ s1='AZUL '+(r.t0||0)+'  —  '+(r.t1||0)+' ROJO'; s2=win?'¡tu equipo ganó!':'perdió tu equipo'; }
+  else if(mode.id==='quest'){ s1='oleada '+(r.wave||1)+' / '+(mode.waves||3); s2=win?'¡oleadas superadas!':'no aguantaron'; }
+  else if(mode.id==='trials'){ s1='🎯 '+(r.score||0)+' / '+(mode.goal||20)+' blancos'; s2=win?'¡meta cumplida!':'sigue practicando'; }
+  $('#results-hearts').textContent=s1;
+  $('#results-cash').className=''; $('#results-cash').style.color=win?'#57d977':'#b7b1a4'; $('#results-cash').textContent=s2;
+  $('#results-xp').textContent='+'+xp+' XP · Nivel '+DATA.level()+(lu.up?'  ★ ¡NIVEL '+lu.level+'!':'');
+  const cvs=$('#results-sprite'), c=cvs.getContext('2d'); c.clearRect(0,0,cvs.width,cvs.height);
+  if(me){ const sp=Sprites.spriteCanvas(me.animal); c.imageSmoothingEnabled=true; const k=Math.min(150/sp.height,130/sp.width); c.drawImage(sp,(cvs.width-sp.width*k)/2,(cvs.height-sp.height*k)/2,sp.width*k,sp.height*k); }
+  $('#results').classList.add('show');
+  if(window.MUSIC){ if(win)MUSIC.winner(); else MUSIC.lobby(); }
+  if(win){ SFX.win(); UI.popHeart(); confetti(); } else SFX.lose();
+}
+
 function init(){
-  $('#btn-ranked').addEventListener('click',()=>{ SFX.click(); startRanked(); });   // JUGAR directo: sobrevive, no pierdas ♥
-  $('#btn-ranks-close').addEventListener('click',()=>{ SFX.click(); $('#modal-ranks').classList.remove('show'); });
-  $('#modal-ranks').addEventListener('click',(e)=>{ if(e.target.id==='modal-ranks') $('#modal-ranks').classList.remove('show'); });
+  $('#btn-ranked').addEventListener('click',()=>{ SFX.click(); openModes(); });   // JUGAR → ELIGE MODO (5 modos TowerFall)
+  $('#btn-modes-close').addEventListener('click',()=>{ SFX.click(); $('#modal-modes').classList.remove('show'); });
+  $('#modal-modes').addEventListener('click',(e)=>{ if(e.target.id==='modal-modes') $('#modal-modes').classList.remove('show'); });
   $('#btn-results-lobby').addEventListener('click',()=>{ SFX.click(); $('#results').classList.remove('show'); UI.enterLobby(); });
 }
 
-window.MATCH={ init, startRanked, openRanks, startParty };
+window.MATCH={ init, openModes, startMode, startRanked, openRanks, startParty };
 })();

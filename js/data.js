@@ -132,6 +132,21 @@ const WEAPONS = [
 ];
 const byWeapon = {}; WEAPONS.forEach(w=>byWeapon[w.id]=w);
 
+// ---- MODOS DE JUEGO (estilo TowerFall) — la única forma de jugar ----
+const MODES = [
+  {id:'lms',    name:'LAST MAN STANDING', icon:'☠', color:'#e8c11e', players:4, lives:3, respawn:1.2, dur:120,
+    blurb:'Última vida. El último en pie GANA.'},
+  {id:'hunt',   name:'HEADHUNTERS',       icon:'💀', color:'#c77dff', players:4, respawn:1.4, dur:75, goal:10,
+    blurb:'Mata para soltar CALAVERAS. Junta más y ganas.'},
+  {id:'tdm',    name:'TEAM DEATHMATCH',   icon:'⚔', color:'#4dd2ff', players:4, teams:true, respawn:1.4, dur:90, goal:15,
+    blurb:'2 vs 2. El equipo con más kills gana.'},
+  {id:'quest',  name:'QUEST',             icon:'🛡', color:'#57d977', players:2, coop:true, teams:true, respawn:1.6, dur:150, waves:3, questGoal:18,
+    blurb:'Cooperativo: sobrevive OLEADAS de enemigos.'},
+  {id:'trials', name:'TRIALS',            icon:'🎯', color:'#ff9e3c', players:1, solo:true, respawn:0.6, dur:45, goal:20,
+    blurb:'Solo. Rompe BLANCOS contra el reloj.'},
+];
+const byMode={}; MODES.forEach(m=>byMode[m.id]=m);
+
 // ---- economía: COMPRAS un monito (trae ciertos ♥) y su misión es SUBIR de corazones jugando ----
 const ECON = {
   PLAYERS: 4,
@@ -357,7 +372,7 @@ function statPips(a){
   return {dif,spd,hp,r};
 }
 
-window.DATA = { ANIMALS, byId, WEAPONS, byWeapon, ECON, HEART_PACKS, buyPack, animalHearts, animalPrice, buyAnimal, RANKS, rankAt, curRank, setRank, maxAffordableRank, mesaPlayable,
+window.DATA = { ANIMALS, byId, WEAPONS, byWeapon, ECON, MODES, byMode, HEART_PACKS, buyPack, animalHearts, animalPrice, buyAnimal, RANKS, rankAt, curRank, setRank, maxAffordableRank, mesaPlayable,
   RARITY, POWERS, CHESTS, byChest, byRarity, openTreasure,
   state:()=>S, load, save, reset, level, levelProgress, TITLES, playerRank, nextRank, gainXP,
   RANK_TIERS, rankFromRP, playerRankR6, gainRP, rankFromHearts, playerRankHearts, mint, randomBots, leaderboard, BOT_NAMES, statPips, buyWeapon, equipWeapon, equipped };
