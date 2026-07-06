@@ -203,7 +203,7 @@ function initMarket(){
 
 // ---------- wallet ----------
 function initHelp(){
-  $('#btn-help').addEventListener('click',()=>{ SFX.click(); $('#modal-help').classList.add('show'); });
+  const bh=$('#btn-help'); if(bh) bh.addEventListener('click',()=>{ SFX.click(); $('#modal-help').classList.add('show'); });
   $('#btn-help-close').addEventListener('click',()=>{ SFX.click(); $('#modal-help').classList.remove('show'); });
 }
 
@@ -535,7 +535,7 @@ function renderBoard(){
   });
 }
 function initBoard(){
-  $('#btn-leaderboard').addEventListener('click',()=>{ SFX.click(); renderBoard(); show('#screen-leaderboard'); });
+  const bl=$('#btn-leaderboard'); if(bl) bl.addEventListener('click',()=>{ SFX.click(); renderBoard(); show('#screen-leaderboard'); });
   $('#btn-board-back').addEventListener('click',()=>{ SFX.click(); enterLobby(); });
 }
 
@@ -800,7 +800,9 @@ function renderArena(){
   if(num) num.textContent='ARENA '+(idx+1)+' / '+ARENA_NAMES.length;
   if(nm){ nm.textContent=ARENA_NAMES[idx]||'ARENA'; nm.style.color=r.tier.c1; }
   if(banner && !banner.__wired){ banner.__wired=true;
-    banner.addEventListener('click',()=>{ SFX.click(); renderArenaLadder(); $('#modal-arenas').classList.add('show'); });
+    const openLadder=()=>{ SFX.click(); renderArenaLadder(); $('#modal-arenas').classList.add('show'); };
+    banner.addEventListener('click',openLadder);
+    const ba=$('#btn-arenas'); if(ba) ba.addEventListener('click',openLadder);   // botón ARENAS del menú
     const cl=$('#btn-arenas-close'); if(cl) cl.addEventListener('click',()=>{ SFX.click(); $('#modal-arenas').classList.remove('show'); });
     const mb=$('#modal-arenas'); if(mb) mb.addEventListener('click',e=>{ if(e.target.id==='modal-arenas') mb.classList.remove('show'); });
   }
