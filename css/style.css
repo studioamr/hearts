@@ -242,6 +242,32 @@ body{
 @keyframes heartpop{40%{transform:scale(1.25)}}
 
 .lobby-hero{display:flex;flex-direction:column;align-items:center;text-align:center}
+/* BANNER DE ARENA (estilo Clash Royale) */
+.arena-banner{
+  display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;
+  background:linear-gradient(180deg,rgba(20,18,30,.72),rgba(10,8,16,.8));
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.16);border-radius:14px;
+  padding:8px 26px;margin-bottom:12px;box-shadow:0 8px 22px rgba(0,0,0,.4);
+  transition:transform .1s,border-color .12s;
+}
+.arena-banner:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.32)}
+.ab-num{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.28em;color:#b9b3c6}
+.ab-name{font-family:'Archivo Black',sans-serif;font-size:clamp(18px,2.4vw,26px);letter-spacing:.05em;color:#f4efe4;line-height:1}
+.ab-hint{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;color:rgba(255,255,255,.45);margin-top:2px}
+/* ESCALERA DE ARENAS */
+.arena-ladder{display:flex;flex-direction:column;gap:8px;max-height:56vh;overflow-y:auto;padding:2px}
+.arena-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);border-left:4px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.03)}
+.arena-row .ar-num{font-family:'Archivo Black',sans-serif;font-size:15px;min-width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;border-radius:8px}
+.arena-row .ar-name{flex:1;text-align:left;font-family:'Archivo',sans-serif;font-weight:800;font-size:12px;letter-spacing:.06em;color:#e7e2d6;display:flex;flex-direction:column}
+.arena-row .ar-name b{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.16em;font-weight:700;margin-top:2px}
+.arena-row .ar-req{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.06em;color:rgba(255,255,255,.7);white-space:nowrap}
+.arena-row.current{background:rgba(255,255,255,.09);box-shadow:0 0 0 1px rgba(255,255,255,.2) inset}
+.arena-row.locked{opacity:.5}
+.arena-row.done .ar-req{color:#7fe0a0}
 .user-plate{
   background:rgba(178,170,158,.9);color:var(--btn-ink);
   font-family:'Archivo Black',sans-serif;font-size:clamp(22px,3vw,34px);letter-spacing:.08em;

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=110">
+<link rel="stylesheet" href="css/style.css?v=111">
 </head>
 <body>
 
@@ -97,6 +97,11 @@
 
     <!-- héroe al centro -->
     <section class="lobby-hero">
+      <button class="arena-banner" id="arena-banner">
+        <span class="ab-num" id="ab-num">ARENA 1 / 8</span>
+        <span class="ab-name" id="ab-name">BOSQUE INICIAL</span>
+        <span class="ab-hint">toca para ver la escalera ›</span>
+      </button>
       <div class="user-plate" id="lobby-username">*USUARIO*</div>
       <div class="lobby-stats">
         <div class="lvl" id="lobby-lvl">LVL. 1</div>
@@ -361,6 +366,16 @@
   </div>
 </div>
 
+<!-- ESCALERA DE ARENAS (estilo Clash Royale) -->
+<div class="modal-back" id="modal-arenas">
+  <div class="modal arenas-modal" style="max-width:460px;width:min(460px,94vw)">
+    <h3>ARENAS · SUBE DE RANGO</h3>
+    <div style="font-size:12.5px;line-height:1.6;opacity:.82;margin:2px 2px 12px">Cada arena es un rango. Gana <b>♥</b> ganando partidas y <b>subes de arena</b> — el fondo del inicio cambia a la arena en la que estás.</div>
+    <div class="arena-ladder" id="arena-ladder"></div>
+    <div class="modal-actions"><button class="btn-flat" id="btn-arenas-close">CERRAR</button></div>
+  </div>
+</div>
+
 <div class="modal-back" id="modal-modes">
   <div class="modal" style="max-width:480px;width:min(480px,95vw)">
     <h3>ELIGE MODO</h3>
@@ -372,20 +387,20 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/audio.js?v=110"></script>
-<script src="js/sprites.js?v=110"></script>
-<script src="js/mapart.js?v=110"></script>
-<script src="js/intro.js?v=110"></script>
-<script src="js/tutorial.js?v=110"></script>
-<script src="js/themes.js?v=110"></script>
-<script src="js/data.js?v=110"></script>
-<script src="js/weapons.js?v=110"></script>
-<script src="js/ui.js?v=110"></script>
-<script src="js/bomberman.js?v=110"></script>
-<script src="js/towerfall.js?v=110"></script>
-<script src="js/showdown.js?v=110"></script>
-<script src="js/bros.js?v=110"></script>
-<script src="js/match.js?v=110"></script>
-<script src="js/main.js?v=110"></script>
+<script src="js/audio.js?v=111"></script>
+<script src="js/sprites.js?v=111"></script>
+<script src="js/mapart.js?v=111"></script>
+<script src="js/intro.js?v=111"></script>
+<script src="js/tutorial.js?v=111"></script>
+<script src="js/themes.js?v=111"></script>
+<script src="js/data.js?v=111"></script>
+<script src="js/weapons.js?v=111"></script>
+<script src="js/ui.js?v=111"></script>
+<script src="js/bomberman.js?v=111"></script>
+<script src="js/towerfall.js?v=111"></script>
+<script src="js/showdown.js?v=111"></script>
+<script src="js/bros.js?v=111"></script>
+<script src="js/match.js?v=111"></script>
+<script src="js/main.js?v=111"></script>
 </body>
 </html>
