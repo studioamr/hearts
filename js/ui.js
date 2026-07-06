@@ -45,7 +45,7 @@ function initLogin(){
   const enter=()=>{
     const name=input.value.trim()||'USUARIO';
     st.name=name; DATA.save(); SFX.click();
-    enterMenu();
+    enterLobby();                       // pantalla principal estilo Fortnite (con fondo de paisajes)
   };
   $('#btn-enter').addEventListener('click',enter);
   input.addEventListener('keydown',e=>{ if(e.key==='Enter') enter(); });
@@ -109,6 +109,7 @@ function enterLobby(){
   $('#lobby-record').innerHTML=`PARTIDAS ${st.matches}<br>VICTORIAS ${st.wins} (${wr}%)<br>♥ GANADOS ${st.heartsWon}`;
   if(window.MUSIC) MUSIC.lobby();
   show('#screen-lobby');
+  startLobbyBG();
   if(window.TUT) TUT.onLobby();
 }
 function updateHearts(){
@@ -561,12 +562,12 @@ function initTouch(){
 }
 
 // ---------- MENÚ PRINCIPAL (hub estilo arcade) ----------
-// ---------- FONDO VIVO DEL MENÚ (paisajes que ciclan: nieve/desierto/volcán/bosque + monitos) ----------
-let _menuBG=null;
-function startMenuBG(){
-  const cv=$('#menu-bg'); if(!cv) return;
-  const menu=$('#screen-menu'), ctx=cv.getContext('2d');
-  if(_menuBG){ _menuBG.run(); return; }              // ya construido: solo reanuda el loop
+// ---------- FONDO VIVO (paisajes que ciclan: nieve/desierto/volcán/bosque + monitos) ----------
+// reutilizable: se le pasa el canvas y la pantalla (menú o lobby). Cada canvas guarda su instancia en cv.__bg
+function startBiomeBG(cv, menu){
+  if(!cv||!menu) return;
+  const ctx=cv.getContext('2d');
+  if(cv.__bg){ cv.__bg.run(); return; }              // ya construido: solo reanuda el loop
   const S={ W:0,H:0,t:0,on:false,raf:0,runners:[],arrows:[],parts:[], cur:0,next:0,fade:0,hold:0 };
   const visible=()=>menu.classList.contains('active');
   const HOLD=10, FADE=2.2;                           // seg por bioma / duración del cruce
@@ -715,8 +716,10 @@ function startMenuBG(){
   function run(){ if(S.on) return; S.on=true; last=0; S.raf=requestAnimationFrame(frame); }
   fit();
   window.addEventListener('resize',()=>{ clearTimeout(S._rz); S._rz=setTimeout(fit,180); });
-  _menuBG={run,fit}; run();
+  cv.__bg={run,fit}; run();
 }
+function startMenuBG(){ startBiomeBG($('#menu-bg'), $('#screen-menu')); }
+function startLobbyBG(){ startBiomeBG($('#lobby-bg'), $('#screen-lobby')); }
 
 function enterMenu(){
   const st=DATA.state();
