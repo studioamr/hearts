@@ -202,7 +202,9 @@ function openBuy(a){    // "ver tarjeta" estilo mockup: header HEARTS · pips ·
   // ULTIMATE del animal (tecla R), personalizado
   $('#buy-ult').innerHTML = (pw&&pw.ult) ? ('<b>R · '+pw.ult+'</b> — '+(pw.ultDesc||pw.blurb)) : (pw?pw.blurb:'');
   $('#btn-buy-select').style.display = owned&&st.selected!==a.id?'':'none';
-  $('#btn-buy-buy').style.display = 'none';   // la compra de monitos es en la TIENDA de la landing
+  // COMPRAR visible si NO lo tienes (compra demo, dentro del juego); si ya es tuyo, oculto
+  if(owned){ $('#btn-buy-buy').style.display='none'; }
+  else { $('#btn-buy-buy').style.display=''; $('#btn-buy-buy').textContent='COMPRAR · $'+DATA.animalPrice(a); }
   $('#modal-buy').classList.add('show');
   if(window.TUT) TUT.onBuyModal();
 }
