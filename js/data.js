@@ -141,7 +141,7 @@ const GEM_PACKS=[
   {id:'g2', gems:500,  usd:9.99,  popular:true},
   {id:'g3', gems:1200, usd:19.99},
 ];
-const UPGRADE={ copies:[0,2,4,10,20], gold:[0,20,50,150,400] };   // de nivel L a L+1 (máx 5)
+const UPGRADE={ copies:[0,2,4,10,20], gold:[0,50,120,300,800] };  // de nivel L a L+1 (máx 5) — curva de montaña
 const MAXLVL=5;
 const COPIES_BY_RARITY={common:[3,6], rare:[2,3], epic:[1,2], legendary:[1,1]};
 const FREE_EVERY=240;                                             // seg entre cofres gratis (demo)
@@ -293,19 +293,22 @@ const ECON = {
   COIN_REWARD: {1:60,2:35,3:22,4:14},
   RARITY_HEARTS: {common:25, rare:50, epic:90, legendary:150}, // ♥ con los que VIENE el monito según rareza
   RARITY_PRICE:  {common:0.99, rare:2.99, epic:6.99, legendary:14.99}, // (cofres) precio en dinero real (demo)
-  RARITY_GOLD:   {common:40, rare:120, epic:350, legendary:800}, // ORO: precio del monito en el mercado del juego
+  RARITY_GOLD:   {common:80, rare:240, epic:600, legendary:1500}, // ORO: precio del monito (curva más empinada)
 };
 function animalHearts(a){ return (ECON.RARITY_HEARTS[a.rarity]||25); }
 function animalPrice(a){ return (ECON.RARITY_PRICE[a.rarity]||0.99); }
 function animalGold(a){ return (ECON.RARITY_GOLD[a.rarity]||40); }   // precio en ORO
-// ---- VIDAS del monito: cada mono que compras VIENE con X vidas; jugar las gasta.
+// ---- VIDAS del monito: cada mono que compras VIENE con X vidas; PERDER las gasta.
 // A 0 vidas el mono queda AGOTADO y tienes que comprar otro (o recargar con copias de cofre: +2 c/u).
+// REGLA SUPERCELL: el juego NUNCA se bloquea — el RATÓN inicial es GRATIS e INFINITO.
+const FREE_STARTER='mouse';
 const RARITY_LIVES={common:5, rare:8, epic:12, legendary:18};
-function maxLivesOf(a){ return RARITY_LIVES[a.rarity]||5; }
+function maxLivesOf(a){ return a.id===FREE_STARTER?Infinity:(RARITY_LIVES[a.rarity]||5); }
 function livesMap(){ if(!S.lives||typeof S.lives!=='object') S.lives={}; return S.lives; }
-function animalLives(id){ const m=livesMap(); return (m[id]==null)?0:(m[id]|0); }
-function isSpent(id){ return !!S.owned[id] && animalLives(id)<=0; }
+function animalLives(id){ if(id===FREE_STARTER) return Infinity; const m=livesMap(); return (m[id]==null)?0:(m[id]|0); }
+function isSpent(id){ if(id===FREE_STARTER) return false; return !!S.owned[id] && animalLives(id)<=0; }
 function spendLives(id,n){
+  if(id===FREE_STARTER) return Infinity;             // el ratón nunca se gasta
   const m=livesMap(); m[id]=Math.max(0,(m[id]|0)-(n|0)); save(); return m[id];
 }
 function refillLives(id,n){       // copias de cofre / recarga: suma vidas con tope
@@ -368,6 +371,7 @@ const DEFAULT = ()=>({
   freeAt:0,           // timestamp del próximo COFRE GRATIS
   roadClaimed:{},     // premios del camino de copas ya reclamados
   shopDay:null, shopDeals:null,  // ofertas del día (3 cartas por oro)
+  ftueSeen:false,     // ¿ya pasó la primera batalla guiada?
   owned:{mouse:'#0000'},  // arranca SOLO con el RATÓN (gratis); los mejores se compran en la landing
   weapons:['bow_wood'],   // armas que posees
   weapon:'bow_wood',      // arma equipada
@@ -403,7 +407,10 @@ function load(){
   Object.keys(S.owned).forEach(id=>{ if(!S.cards[id]) S.cards[id]={copies:0,level:1}; });
   // vidas: saves viejos sin registro → vidas llenas (no castigar migración)
   if(!S.lives||typeof S.lives!=='object') S.lives={};
-  Object.keys(S.owned).forEach(id=>{ if(S.lives[id]==null && byId[id]) S.lives[id]=maxLivesOf(byId[id]); });
+  Object.keys(S.owned).forEach(id=>{ if(S.lives[id]==null && byId[id] && id!==FREE_STARTER) S.lives[id]=maxLivesOf(byId[id]); });
+  // el RATÓN inicial SIEMPRE existe (aunque el save venga de la landing): jugar nunca se bloquea
+  if(!S.owned[FREE_STARTER]){ S.owned[FREE_STARTER]='#0000'; if(!S.cards[FREE_STARTER]) S.cards[FREE_STARTER]={copies:0,level:1}; }
+  if(!S.selected || !byId[S.selected]) S.selected=FREE_STARTER;
   if(typeof S.rank!=='number' || S.rank<0 || S.rank>=RANKS.length) S.rank=0;   // rango válido
   return S;
 }
@@ -559,5 +566,5 @@ window.DATA = { ANIMALS, byId, WEAPONS, byWeapon, ECON, MODES, byMode, HEART_PAC
   CHEST_META, CHEST_GEMS, GEM_PACKS, UPGRADE, MAXLVL, ROAD_REWARDS, FREE_EVERY,
   cardOf, cardLevel, canUpgrade, upgradeCard, slots, awardChest, startUnlock, unlockLeft, skipCost, skipUnlock,
   openSlot, buyChestGems, freeLeft, claimFree, buyGems, getDeals, buyDeal, roadClaimable, claimRoad, rollVictoryChest,
-  RARITY_LIVES, maxLivesOf, animalLives, isSpent, spendLives, refillLives };
+  RARITY_LIVES, FREE_STARTER, maxLivesOf, animalLives, isSpent, spendLives, refillLives };
 })();

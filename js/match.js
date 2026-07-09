@@ -88,14 +88,21 @@ let current=null;
 function startRanked(){
   if(window.TUT) TUT.onRanked();
   const st=DATA.state();
-  const an=DATA.byId[st.selected];
-  if(!an){ SFX.deny(); UI.toast('Consigue tu guerrero en la TIENDA o en CARTAS'); return; }
-  if(DATA.isSpent(an.id)){ SFX.deny(); UI.toast('¡'+an.name+' está AGOTADO (0 ♥)! Compra otro en CARTAS o recárgalo con copias de cofre'); return; }
+  let an=DATA.byId[st.selected];
+  // NUNCA se bloquea el jugar: si tu mono está agotado, entras con el RATÓN (gratis e infinito)
+  if(!an || DATA.isSpent(an.id)){
+    const spentName=an?an.name:null;
+    st.selected=DATA.FREE_STARTER; DATA.save(); an=DATA.byId[st.selected];
+    if(spentName) UI.toast('☠ '+spentName+' está agotado — juegas con RATÓN (recárgalo en CARTAS)');
+  }
   st.matches++; DATA.save(); UI.updateHearts();   // VERSUS estilo TowerFall: rondas de eliminación
 
-  const players=[{name:st.name||'TÚ', animal:an, bot:false, color:COLORS[0], weapon:DATA.equipped(), cardLvl:DATA.cardLevel(an.id)}];
+  const myLvl=DATA.cardLevel(an.id);
+  const players=[{name:st.name||'TÚ', animal:an, bot:false, color:COLORS[0], weapon:DATA.equipped(), cardLvl:myLvl}];
   const WPOOL=DATA.WEAPONS;
-  DATA.randomBots(DATA.ECON.PLAYERS-1, an.id).forEach((b,i)=>players.push({...b, color:COLORS[(i+1)%COLORS.length], weapon:WPOOL[Math.floor(Math.random()*WPOOL.length)]}));
+  DATA.randomBots(DATA.ECON.PLAYERS-1, an.id).forEach((b,i)=>players.push({...b, color:COLORS[(i+1)%COLORS.length],
+    weapon:WPOOL[Math.floor(Math.random()*WPOOL.length)],
+    cardLvl:Math.max(1, myLvl + (Math.random()<0.4?0:(Math.random()<0.5?-1:1))) }));  // rivales de TU nivel (±1)
   players.forEach(p=>{ p.hp=DATA.ECON.LIVES; p.elim=false; p.koRound=false; });
 
   current={ players, round:0, ecoStart:Math.floor(Math.random()*ECOS.length) };
@@ -105,7 +112,23 @@ function startRanked(){
   $('#results').classList.remove('show');
   $('#scoreboard').classList.remove('show');
   UI.show('#screen-game');
-  runRound();
+  showMatchmaking(players, runRound);                        // "BUSCANDO RIVALES…" → arranca
+}
+
+// MATCHMAKING (se siente en línea): busca rivales y los va encontrando por nombre
+function showMatchmaking(players, done){
+  const mm=$('#matchmaking'); if(!mm){ done(); return; }
+  const list=$('#mm-list'); list.innerHTML='';
+  mm.classList.add('show'); SFX.phase();
+  const rows=players.map((p,i)=>{
+    const r=document.createElement('div'); r.className='mm-row'+(p.bot?'':' me');
+    r.innerHTML='<span class="dot" style="background:'+p.color+'"></span>'+(p.bot?'···':(p.name+' (TÚ)'));
+    list.appendChild(r); return r;
+  });
+  players.forEach((p,i)=>{ if(!p.bot) return;
+    setTimeout(()=>{ rows[i].innerHTML='<span class="dot" style="background:'+p.color+'"></span>'+p.name+' <em>🏆 '+(Math.max(0,(DATA.state().cups|0)+Math.floor(Math.random()*41)-20))+'</em>'; SFX.count(); }, 350+i*380);
+  });
+  setTimeout(()=>{ mm.classList.remove('show'); done(); }, 350+players.length*380+500);
 }
 
 // PARTY con amigos: partida CASUAL (sin apuesta). members[i]={name,animal,me/bot}
@@ -185,7 +208,7 @@ function runRound(){
         MODE.start($('#game-canvas'), parts, cfg, onRoundEnd, eco.id);
       },350);
     }
-  },800);
+  },650);
 }
 
 function onRoundEnd(){
@@ -231,7 +254,7 @@ function showScoreboard(final){
     $('#scoreboard').classList.remove('show');
     if(final) finishMatch();
     else { m.round++; runRound(); }
-  },3400);
+  },2400);
 }
 
 function finishMatch(){
@@ -250,16 +273,16 @@ function finishMatch(){
   const dcups=win?30:-20;                                  // COPAS: ganas +30, pierdes −20 (Clash Royale)
   const b4=DATA.playerRankCups().idx; DATA.gainCups(dcups); const af=DATA.playerRankCups().idx;
   const dgold=win?60:20; DATA.gainGold(dgold);             // ORO para subir cartas
-  // VIDAS DEL MONITO: las ♥ que perdiste en la partida se le descuentan a TU mono (a 0 = comprar otro)
+  // VIDAS DEL MONITO: solo se gastan al PERDER (ganar nunca castiga — regla Supercell)
   let livesLine='';
-  if(!isParty && me && me.animal){
-    const lost=Math.max(0, DATA.ECON.LIVES - Math.max(0, me.hp|0));
-    if(lost>0){
+  if(!isParty && me && me.animal && me.animal.id!==DATA.FREE_STARTER){
+    if(!win){
+      const lost=Math.max(1, DATA.ECON.LIVES - Math.max(0, me.hp|0));
       const left=DATA.spendLives(me.animal.id, lost);
       livesLine = '−'+lost+' ♥ de '+me.animal.name+' · le quedan '+left+' ♥'
         + (left<=0 ? '  ☠ ¡SE AGOTÓ! compra otro' : '');
     } else {
-      livesLine = me.animal.name+' salió ILESO · '+DATA.animalLives(me.animal.id)+' ♥';
+      livesLine = '¡victoria! '+me.animal.name+' no gastó vidas · '+DATA.animalLives(me.animal.id)+' ♥';
     }
   }
   // COFRE por VICTORIA (estilo CR): entra a un slot; si están llenos, no cabe
@@ -422,7 +445,7 @@ function launchArena(){
         MODE.start($('#game-canvas'), m.players, cfg, onModeEnd, eco.id);
       },350);
     }
-  },800);
+  },650);
 }
 function onModeEnd(result){ showModeResult(result||{mode:current.mode.id}); }
 function showModeResult(r){

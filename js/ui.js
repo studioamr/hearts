@@ -72,7 +72,7 @@ function enterLobby(){
     const w=sp.width*k, h=sp.height*k;
     c.drawImage(sp,(cv.width-w)/2,cv.height-h-6,w,h);
     $('#avatar-name').textContent=an.name;
-    $('#avatar-token').textContent='NFT '+(st.owned[an.id]||'#—');
+    $('#avatar-token').textContent='CARTA · NIVEL '+DATA.cardLevel(an.id);
     // stats de carta (como el mockup)
     const p=DATA.statPips(an);
     [['#sc-dif',p.dif],['#sc-spd',p.spd],['#sc-hp',p.hp],['#sc-r',p.r]].forEach(([sel,n])=>{
@@ -88,7 +88,10 @@ function enterLobby(){
     const lv=$('#animal-lives');
     if(lv){
       const cur=DATA.animalLives(an.id), max=DATA.maxLivesOf(an);
-      if(cur<=0){
+      if(!isFinite(cur)){
+        lv.className='animal-lives';
+        lv.innerHTML='<span class="al-hearts">♥</span><b>∞ vidas · GRATIS</b>';
+      } else if(cur<=0){
         lv.className='animal-lives spent';
         lv.innerHTML='☠ AGOTADO · <b>compra otro en CARTAS</b> (o recárgalo con copias de cofre)';
       } else {
@@ -129,7 +132,64 @@ function enterLobby(){
   initPager();
   startLobbyBG();
   renderArena();
+  updateLocks();
+  startFeed();
+  maybeFTUE();
   if(window.TUT) TUT.onLobby();
+}
+
+// ---------- FTUE: la primera acción es PELEAR (estilo CR: el tutorial ES una batalla) ----------
+function maybeFTUE(){
+  const st=DATA.state();
+  if(st.ftueSeen || st.matches>0) return;
+  const ov=$('#ftue'); if(!ov) return;
+  ov.classList.add('show');
+  if(ov.__wired) return; ov.__wired=true;
+  $('#ftue-go').addEventListener('click',()=>{ SFX.click(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); MATCH.startRanked(); });
+  $('#ftue-skip').addEventListener('click',()=>{ SFX.click(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); });
+}
+
+// ---------- CANDADOS de progreso (estilo CR: se desbloquea jugando → curiosidad) ----------
+function updateLocks(){
+  const st=DATA.state();
+  // CARTAS: se abre tras tu 1ª batalla
+  const tabCards=document.querySelector('#cr-tabs button[data-panel="2"]');
+  if(tabCards){ const locked=st.matches<1; tabCards.classList.toggle('locked',locked);
+    tabCards.querySelector('.ct-lock')?.remove();
+    if(locked) tabCards.insertAdjacentHTML('beforeend','<span class="ct-lock">🔒</span>'); }
+  // AMIGOS: se abre en ARENA 2 (60 copas)
+  const bp=$('#btn-party');
+  if(bp){ const locked=(st.cups|0)<60; bp.classList.toggle('locked-btn',locked);
+    bp.textContent = locked ? 'AMIGOS 🔒' : 'AMIGOS';
+    if(!bp.__lockWired){ bp.__lockWired=true;
+      bp.addEventListener('click',(e)=>{ if((DATA.state().cups|0)<60){ e.stopImmediatePropagation(); SFX.deny(); toast('🔒 AMIGOS se desbloquea en ARENA 2 (60 🏆) — ¡sigue ganando!'); } }, true);
+    }
+  }
+}
+
+// ---------- FEED EN VIVO (la escalera se siente habitada) ----------
+let _feedIv=null;
+function startFeed(){
+  const box=$('#live-feed'); if(!box || _feedIv) return;
+  const names=(DATA.BOT_NAMES&&DATA.BOT_NAMES.length)?DATA.BOT_NAMES:['xX_Cazador_Xx','Lady_Zarpa','DonDepredador','MorelosGG','Sr.Colmillo','DarkFang99','ElPatron_MX','Colmilla'];
+  const tiers=['PLATA','ORO','PLATINO','ESMERALDA'];
+  const chests=['COFRE DE ORO','COFRE DIAMANTE','COFRE DE PLATA'];
+  const legends=['ÁGUILA','LEÓN','ORCA','TIGRE','LOBO'];
+  const mk=()=>{
+    const n=names[Math.floor(Math.random()*names.length)];
+    const r=Math.random();
+    if(r<0.3) return '🏆 <b>'+n+'</b> subió a '+tiers[Math.floor(Math.random()*tiers.length)];
+    if(r<0.55) return '🎁 <b>'+n+'</b> abrió un '+chests[Math.floor(Math.random()*chests.length)];
+    if(r<0.8) return '⚔️ <b>'+n+'</b> lleva '+(2+Math.floor(Math.random()*4))+' victorias seguidas';
+    return '✨ <b>'+n+'</b> consiguió a '+legends[Math.floor(Math.random()*legends.length)];
+  };
+  const paint=()=>{
+    const online=1100+Math.floor(Math.random()*300);
+    box.innerHTML='<div class="lf-head">🟢 '+online.toLocaleString()+' en línea</div>'
+      +'<div class="lf-row">'+mk()+'</div><div class="lf-row">'+mk()+'</div>';
+  };
+  paint();
+  _feedIv=setInterval(()=>{ if($('#screen-main').classList.contains('active')) paint(); }, 4500);
 }
 
 // ---------- PAGER estilo CLASH ROYALE: 3 paneles con swipe/scroll + pestañas ----------
@@ -140,7 +200,9 @@ function goPanel(i){
 function initPager(){
   const pg=$('#cr-pager'), tabs=$('#cr-tabs'); if(!pg||pg.__wired) return; pg.__wired=true;
   pg.scrollLeft=pg.clientWidth;                                  // arranca en BATALLA (centro)
-  tabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ SFX.click();
+  tabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    if(b.classList.contains('locked')){ SFX.deny(); toast('🔒 Juega tu PRIMERA BATALLA para abrir CARTAS'); return; }
+    SFX.click();
     tabs.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));   // feedback inmediato
     goPanel(+b.dataset.panel); }));
   let t=null;
@@ -331,7 +393,8 @@ function renderMarket(){
       const spent=DATA.isSpent(a.id);
       if(spent) card.classList.add('spent-card');
       const lvs=document.createElement('div'); lvs.className='mk-lives'+(spent?' out':'');
-      lvs.textContent= spent ? '☠ AGOTADO' : ('♥ '+DATA.animalLives(a.id)+'/'+DATA.maxLivesOf(a));
+      const cur=DATA.animalLives(a.id);
+      lvs.textContent= spent ? '☠ AGOTADO' : (isFinite(cur) ? ('♥ '+cur+'/'+DATA.maxLivesOf(a)) : '♥ ∞ · GRATIS');
       card.appendChild(lvs);
       const lv=document.createElement('div'); lv.className='mk-lvl'; lv.textContent='NIVEL '+c.level;
       lv.style.background=rc.color; card.appendChild(lv);
