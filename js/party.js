@@ -119,32 +119,80 @@ function startBros(){
 }
 
 // ============================================================
-// 🎉 FIESTA — estilo Mario Party: 3 minijuegos sorpresa,
-// puntos por ronda (+5 sobrevivir/ganar · +1 participar) y podio
+// 🎉 FIESTA — estilo Mario Party: cada RONDA gira la RUEDA DE LA
+// FORTUNA: un giro decide el MODO y otro giro decide el MAPA.
+// Puntos por ronda (+5 sobrevivir/ganar · +1 participar) y podio.
 // ============================================================
 const MINIGAMES=[
-  {id:'bombas', icon:'💣', name:'BOMBAS',     blurb:'1 vida · el último en pie +5'},
-  {id:'smash',  icon:'🥊', name:'SMASH',      blurb:'sácalos del stage · sobrevivir +5'},
-  {id:'lms',    icon:'☠',  name:'ÚLTIMA VIDA',blurb:'duelo de flechas · el último +5'},
-  {id:'hunt',   icon:'💀', name:'CALAVERAS',  blurb:'junta calaveras · +5/+3/+2/+1'},
+  {id:'bombas', icon:'💣', name:'BOMBAS',     color:'#ef7d1c', blurb:'1 vida · el último en pie +5'},
+  {id:'smash',  icon:'🥊', name:'SMASH',      color:'#7e46e0', blurb:'sácalos del stage · sobrevivir +5'},
+  {id:'lms',    icon:'☠',  name:'ÚLTIMA VIDA',color:'#b8912e', blurb:'duelo de flechas · el último +5'},
+  {id:'hunt',   icon:'💀', name:'CALAVERAS',  color:'#9d4fd8', blurb:'junta calaveras · +5/+3/+2/+1'},
 ];
+const ECO_META={
+  selva:   ['🌿','SELVA','#2e8b57'],   desierto:['🏜️','DESIERTO','#c8922e'],
+  nieve:   ['❄️','NIEVE','#5f9fc8'],   volcan:  ['🌋','VOLCÁN','#c8442e'],
+  japon:   ['🌸','SAKURA','#c86a94'],  tokyo:   ['🌃','NEO-TOKYO','#7e5fd8'],
+  egipto:  ['🐫','GIZA','#b8a04f'],    grecia:  ['🏛️','OLIMPO','#6f8fb0'],
+  china:   ['🐉','DRAGÓN','#b83a3a'],
+};
+const ALL_ECOS=Object.keys(ECO_META);
+
+// ---------- RUEDA DE LA FORTUNA: gira y cae en el gajo elegido ----------
+function spinWheel(title, items, winIdx){
+  return new Promise(res=>{
+    const back=$('#wheel-back'), wheel=$('#wheel');
+    $('#wheel-title').textContent=title;
+    $('#wheel-result').textContent='';
+    const n=items.length, seg=360/n;
+    const stops=items.map((it,i)=>it.color+' '+(i*seg)+'deg '+((i+1)*seg)+'deg').join(', ');
+    wheel.style.transition='none';
+    wheel.style.transform='rotate(0deg)';
+    wheel.style.background='conic-gradient('+stops+')';
+    wheel.innerHTML=items.map((it,i)=>
+      '<div class="wl" style="transform:rotate('+((i+0.5)*seg)+'deg)"><span><i>'+it.icon+'</i><b>'+it.label+'</b></span></div>'
+    ).join('')+'<div class="wheel-hub">🎉</div>';
+    back.classList.add('show');
+    // 5 vueltas completas y cae en el CENTRO del gajo ganador (con tantito azar visual)
+    const jitter=(Math.random()-0.5)*seg*0.5;
+    const target=5*360 - ((winIdx+0.5)*seg) + jitter;
+    setTimeout(()=>{ wheel.style.transition='transform 2.8s cubic-bezier(.12,.8,.15,1)';
+      wheel.style.transform='rotate('+target+'deg)'; },40);
+    // tic-tic-tic mientras gira (se va frenando)
+    let tk=0; const ticks=[100,180,260,360,480,640,860,1160,1560,2060,2560];
+    ticks.forEach(t=>setTimeout(()=>SFX.count&&SFX.count(),t));
+    setTimeout(()=>{
+      $('#wheel-result').textContent=items[winIdx].icon+' ¡'+items[winIdx].label+'!';
+      SFX.win&&SFX.win();
+      setTimeout(()=>{ back.classList.remove('show'); res(); },950);
+    },3050);
+  });
+}
+
 let fiesta=null;
 function startFiesta(){
   const players=makePlayers(4);
   players.forEach(p=>p.pts=0);
-  const pool=MINIGAMES.slice().sort(()=>Math.random()-0.5).slice(0,3);
+  const pool=MINIGAMES.slice().sort(()=>Math.random()-0.5).slice(0,3);   // 3 rondas, modos sin repetir
   fiesta={players, games:pool, idx:0};
   fiestaIntro();
 }
-function fiestaIntro(){
+async function fiestaIntro(){
   const g=fiesta.games[fiesta.idx];
   const players=fiesta.players;
   const hp=(g.id==='bombas')?1:(g.id==='smash')?3:2;
+  const ecoPool=(g.id==='bombas'||g.id==='smash')?ECOS4:ALL_ECOS;   // bomber/bros: 4 mapas con arte; flechas: los 9
+  const eco=ecoPool[Math.floor(Math.random()*ecoPool.length)];
+  UI.show('#screen-game');
+  // 🎡 GIRO 1: el MODO de esta ronda · 🎡 GIRO 2: el MAPA
+  await spinWheel('🎡 RONDA '+(fiesta.idx+1)+' DE '+fiesta.games.length+' — ¿QUÉ MODO TOCA?',
+    MINIGAMES.map(m=>({icon:m.icon,label:m.name,color:m.color})), MINIGAMES.findIndex(m=>m.id===g.id));
+  await spinWheel('🗺️ ¿EN QUÉ MAPA?',
+    ecoPool.map(e=>({icon:ECO_META[e][0],label:ECO_META[e][1],color:ECO_META[e][2]})), ecoPool.indexOf(eco));
   resetRound(players,hp);
-  const eco=ECOS4[Math.floor(Math.random()*ECOS4.length)];
-  prepScreen(players,'🎉 FIESTA · MINIJUEGO '+(fiesta.idx+1)+'/'+fiesta.games.length+' · '+g.name, hp);
+  prepScreen(players,'🎉 FIESTA · RONDA '+(fiesta.idx+1)+'/'+fiesta.games.length+' · '+g.name+' · '+ECO_META[eco][1], hp);
   if(window.MUSIC) MUSIC.battle(fiesta.idx);
-  runIntro('🎉 FIESTA · MINIJUEGO '+(fiesta.idx+1)+' DE '+fiesta.games.length, g.icon+' '+g.name, g.blurb, ()=>{
+  runIntro('🎉 RONDA '+(fiesta.idx+1)+' DE '+fiesta.games.length, g.icon+' '+g.name+' · '+ECO_META[eco][1], g.blurb, ()=>{
     const done=r=>fiestaScore(g,r);
     if(g.id==='bombas') BOMBERMAN.start(classicCanvas(), players, {duration:75, minAlive:1}, done, eco);
     else if(g.id==='smash') BROS.start(classicCanvas(), players, {duration:90, minAlive:1}, done, eco);
@@ -169,9 +217,8 @@ function fiestaScore(g,r){
     .map(p=>({name:p.name, animal:p.animal.name, pts:p.pts, me:!p.bot}));
   fiesta.idx++;
   if(fiesta.idx<fiesta.games.length){
-    const nx=fiesta.games[fiesta.idx];
-    showBoard({ title:'🎉 MARCADOR', sub:'siguiente: '+nx.icon+' '+nx.name+' — '+nx.blurb,
-      standings, next:'▶ MINIJUEGO '+(fiesta.idx+1) });
+    showBoard({ title:'🎉 MARCADOR', sub:'la RUEDA DE LA FORTUNA decide la ronda '+(fiesta.idx+1)+'…',
+      standings, next:'🎡 GIRAR LA RUEDA' });
     onNext=fiestaIntro;
   } else {
     const myPlace=standings.findIndex(s=>s.me)+1;
