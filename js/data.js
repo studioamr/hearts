@@ -125,6 +125,140 @@ function openTreasure(chestId){
   return {ok:true, animal, rarity, token, dupe, refund, chest:ch, free};
 }
 
+// ================== MODELO CLASH ROYALE (free-to-play que PICA) ==================
+// COFRES por VICTORIA → 4 SLOTS con TIEMPO de desbloqueo → cartas (copias) + oro.
+// COPIAS + ORO → SUBIR DE NIVEL las cartas. GEMAS 💎 = prisa/cofres (se "compran" con $ demo).
+// COFRE GRATIS cada rato + OFERTAS del día + CAMINO DE COPAS con premios reclamables.
+const CHEST_META={   // t = segundos de desbloqueo (escala DEMO, cortos para probar el loop)
+  wood:   {t:60,   gold:[15,30],   stacks:2},
+  silver: {t:180,  gold:[40,80],   stacks:3},
+  gold:   {t:480,  gold:[100,200], stacks:4},
+  diamond:{t:900,  gold:[250,500], stacks:5},
+};
+const CHEST_GEMS={wood:10, silver:25, gold:60, diamond:140};      // comprar cofre YA con gemas
+const GEM_PACKS=[
+  {id:'g1', gems:80,   usd:1.99},
+  {id:'g2', gems:500,  usd:9.99,  popular:true},
+  {id:'g3', gems:1200, usd:19.99},
+];
+const UPGRADE={ copies:[0,2,4,10,20], gold:[0,20,50,150,400] };   // de nivel L a L+1 (máx 5)
+const MAXLVL=5;
+const COPIES_BY_RARITY={common:[3,6], rare:[2,3], epic:[1,2], legendary:[1,1]};
+const FREE_EVERY=240;                                             // seg entre cofres gratis (demo)
+const ROAD_REWARDS=[ {gold:80},{gems:15},{gold:250},{chest:'gold'},{gems:30},{gold:800},{gems:60},{gold:2000} ];
+
+function cardOf(id){ if(!S.cards) S.cards={}; if(!S.cards[id]) S.cards[id]={copies:0, level:1}; return S.cards[id]; }
+function cardLevel(id){ return (S.cards&&S.cards[id])?S.cards[id].level:1; }
+function addCopies(id,n){
+  const c=cardOf(id);
+  const isNew=!S.owned[id];
+  if(isNew){ mint(id); if(!S.selected) S.selected=id; }
+  c.copies+=n; save();
+  return isNew;
+}
+function canUpgrade(id){
+  const c=cardOf(id); if(c.level>=MAXLVL) return false;
+  return c.copies>=UPGRADE.copies[c.level] && (S.coins|0)>=UPGRADE.gold[c.level];
+}
+function upgradeCard(id){
+  const c=cardOf(id); if(!canUpgrade(id)) return null;
+  S.coins-=UPGRADE.gold[c.level]; c.copies-=UPGRADE.copies[c.level]; c.level++;
+  save(); return c.level;
+}
+// --- SLOTS de cofres (se ganan JUGANDO; se desbloquean con tiempo, uno a la vez) ---
+function slots(){ if(!Array.isArray(S.slots)||S.slots.length!==4) S.slots=[null,null,null,null]; return S.slots; }
+function awardChest(chestId){
+  const sl=slots(); const i=sl.findIndex(s=>!s);
+  if(i<0) return -1;                                   // slots llenos (como CR)
+  sl[i]={chest:chestId, state:'idle', endsAt:0}; save(); return i;
+}
+function startUnlock(i){
+  const sl=slots(); const s=sl[i]; if(!s||s.state!=='idle') return false;
+  if(sl.some(x=>x&&x.state==='unlocking')) return false;   // solo UNO a la vez (como CR)
+  s.state='unlocking'; s.endsAt=Date.now()+(CHEST_META[s.chest].t*1000); save(); return true;
+}
+function unlockLeft(i){ const s=slots()[i]; if(!s||s.state!=='unlocking') return Infinity;
+  return Math.max(0, Math.ceil((s.endsAt-Date.now())/1000)); }
+function skipCost(i){ return Math.max(1, Math.ceil(unlockLeft(i)/60)); }   // ~1💎 por minuto
+function skipUnlock(i){
+  const s=slots()[i]; if(!s||s.state!=='unlocking') return false;
+  const cost=skipCost(i); if((S.gems|0)<cost) return false;
+  S.gems-=cost; s.endsAt=Date.now(); save(); return true;
+}
+function rollChestRewards(chestId){
+  const ch=byChest[chestId], meta=CHEST_META[chestId]; if(!ch||!meta) return null;
+  const gold=meta.gold[0]+Math.floor(Math.random()*(meta.gold[1]-meta.gold[0]+1));
+  const stacks=[];
+  for(let k=0;k<meta.stacks;k++){
+    let rar=rollRarity(ch.odds);
+    if(chestId==='diamond'&&k===0&&(rar==='common'||rar==='rare')) rar='epic';   // diamante garantiza épico+
+    let pool=byRarity(rar);
+    while(pool.length===0&&rar!=='common'){ rar=({legendary:'epic',epic:'rare',rare:'common'})[rar]; pool=byRarity(rar); }
+    const an=pool[Math.floor(Math.random()*pool.length)];
+    const [c0,c1]=COPIES_BY_RARITY[rar]; const copies=c0+Math.floor(Math.random()*(c1-c0+1));
+    const isNew=addCopies(an.id,copies);
+    stacks.push({animal:an, rarity:rar, copies, isNew});
+  }
+  S.coins=(S.coins|0)+gold; save();
+  return {chest:ch, gold, stacks};
+}
+function openSlot(i){
+  const s=slots()[i]; if(!s||s.state!=='unlocking'||unlockLeft(i)>0) return null;
+  const r=rollChestRewards(s.chest); slots()[i]=null; save(); return r;
+}
+function buyChestGems(chestId){
+  const cost=CHEST_GEMS[chestId]; if((S.gems|0)<cost) return null;
+  S.gems-=cost; return rollChestRewards(chestId);       // instantáneo (como comprar en CR)
+}
+function freeLeft(){ return Math.max(0, Math.ceil(((S.freeAt||0)-Date.now())/1000)); }
+function claimFree(){
+  if(freeLeft()>0) return null;
+  S.freeAt=Date.now()+FREE_EVERY*1000; return rollChestRewards('wood');
+}
+function buyGems(packId){ const p=GEM_PACKS.find(x=>x.id===packId); if(!p) return null;
+  S.gems=(S.gems|0)+p.gems; save(); return p; }          // compra DEMO (sin pago real)
+// --- OFERTAS DEL DÍA (3 cartas por oro, rotan diario) ---
+function getDeals(){
+  const today=new Date().toDateString();
+  if(S.shopDay!==today||!Array.isArray(S.shopDeals)){
+    const pick=r=>{ const pool=byRarity(r); return pool[Math.floor(Math.random()*pool.length)].id; };
+    S.shopDeals=[
+      {id:pick('common'),    copies:4, gold:60,  bought:false},
+      {id:pick('rare'),      copies:3, gold:150, bought:false},
+      {id:pick('epic'),      copies:2, gold:400, bought:false},
+    ];
+    S.shopDay=today; save();
+  }
+  return S.shopDeals;
+}
+function buyDeal(i){
+  const d=getDeals()[i]; if(!d||d.bought) return null;
+  if((S.coins|0)<d.gold) return {ok:false, need:d.gold};
+  S.coins-=d.gold; d.bought=true; const isNew=addCopies(d.id,d.copies); save();
+  return {ok:true, animal:byId[d.id], copies:d.copies, isNew};
+}
+// --- CAMINO DE COPAS: premio reclamable por cada arena alcanzada ---
+function roadClaimable(idx){
+  if(!S.roadClaimed) S.roadClaimed={};
+  return (S.cups|0)>=RANK_TIERS[idx].hmin && !S.roadClaimed[idx] && !!ROAD_REWARDS[idx];
+}
+function claimRoad(idx){
+  if(!roadClaimable(idx)) return null;
+  const r=ROAD_REWARDS[idx]; S.roadClaimed[idx]=true;
+  if(r.gold) S.coins=(S.coins|0)+r.gold;
+  if(r.gems) S.gems=(S.gems|0)+r.gems;
+  if(r.chest){ if(awardChest(r.chest)<0){ S.coins=(S.coins|0)+200; r._full=true; } }  // slots llenos → oro
+  save(); return r;
+}
+// cofre que GANAS por victoria (mejor arena = mejores cofres)
+function rollVictoryChest(){
+  const idx=playerRankCups().idx, r=Math.random();
+  if(r<0.04+idx*0.01) return 'diamond';
+  if(r<0.16+idx*0.02) return 'gold';
+  if(r<0.55) return 'silver';
+  return 'wood';
+}
+
 // ---- armas: arcos (rango) y espadas (melee); se compran con MONEDAS ----
 const WEAPONS = [
   // arco por default (único). Sin espadas ni armería.
@@ -208,6 +342,12 @@ const DEFAULT = ()=>({
   hearts:ECON.START_HEARTS,
   cups:0,             // COPAS: puntos de RANGO estilo Clash Royale — el nuevo usuario empieza en 0
   coins:ECON.START_COINS,
+  gems:30,            // GEMAS 💎 de arranque (como CR regala las primeras)
+  slots:[null,null,null,null],   // 4 SLOTS de cofres (se ganan jugando, desbloqueo por tiempo)
+  cards:{},           // {animalId:{copies,level}} — colección estilo CR (copias → subir nivel)
+  freeAt:0,           // timestamp del próximo COFRE GRATIS
+  roadClaimed:{},     // premios del camino de copas ya reclamados
+  shopDay:null, shopDeals:null,  // ofertas del día (3 cartas por oro)
   owned:{mouse:'#0000'},  // arranca SOLO con el RATÓN (gratis); los mejores se compran en la landing
   weapons:['bow_wood'],   // armas que posees
   weapon:'bow_wood',      // arma equipada
@@ -235,6 +375,12 @@ function load(){
   S.weapons=S.weapons.filter(id=>byWeapon[id]);
   if(!byWeapon[S.weapon] || !S.weapons.includes(S.weapon)) S.weapon='bow_wood';
   if(typeof S.coins!=='number') S.coins=ECON.START_COINS;
+  if(typeof S.gems!=='number') S.gems=30;
+  if(!Array.isArray(S.slots)||S.slots.length!==4) S.slots=[null,null,null,null];
+  if(!S.cards||typeof S.cards!=='object') S.cards={};
+  if(!S.roadClaimed||typeof S.roadClaimed!=='object') S.roadClaimed={};
+  // los animales que ya posees siempre tienen carta (nivel 1 mínimo)
+  Object.keys(S.owned).forEach(id=>{ if(!S.cards[id]) S.cards[id]={copies:0,level:1}; });
   if(typeof S.rank!=='number' || S.rank<0 || S.rank>=RANKS.length) S.rank=0;   // rango válido
   return S;
 }
@@ -385,5 +531,9 @@ function statPips(a){
 window.DATA = { ANIMALS, byId, WEAPONS, byWeapon, ECON, MODES, byMode, HEART_PACKS, buyPack, animalHearts, animalPrice, animalGold, gainGold, buyAnimal, RANKS, rankAt, curRank, setRank, maxAffordableRank, mesaPlayable,
   RARITY, POWERS, CHESTS, byChest, byRarity, openTreasure,
   state:()=>S, load, save, reset, level, levelProgress, TITLES, playerRank, nextRank, gainXP,
-  RANK_TIERS, rankFromRP, playerRankR6, gainRP, rankFromHearts, playerRankHearts, rankFromCups, playerRankCups, gainCups, mint, randomBots, leaderboard, BOT_NAMES, statPips, buyWeapon, equipWeapon, equipped };
+  RANK_TIERS, rankFromRP, playerRankR6, gainRP, rankFromHearts, playerRankHearts, rankFromCups, playerRankCups, gainCups, mint, randomBots, leaderboard, BOT_NAMES, statPips, buyWeapon, equipWeapon, equipped,
+  // modelo CLASH ROYALE
+  CHEST_META, CHEST_GEMS, GEM_PACKS, UPGRADE, MAXLVL, ROAD_REWARDS, FREE_EVERY,
+  cardOf, cardLevel, canUpgrade, upgradeCard, slots, awardChest, startUnlock, unlockLeft, skipCost, skipUnlock,
+  openSlot, buyChestGems, freeLeft, claimFree, buyGems, getDeals, buyDeal, roadClaimable, claimRoad, rollVictoryChest };
 })();

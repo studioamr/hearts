@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=121">
+<link rel="stylesheet" href="css/style.css?v=122">
 </head>
 <body>
 
@@ -73,15 +73,18 @@
 
 <div class="cr-pager" id="cr-pager">
 
-  <!-- PANEL 1 · TIENDA (cofres) -->
+  <!-- PANEL 1 · TIENDA (estilo CR: gratis · ofertas del día · cofres 💎 · gemas $) -->
   <div class="cr-panel" id="panel-shop">
     <div class="armory">
       <div class="armory-bar">
-        <div class="market-title">TIENDA · COFRES</div>
+        <div class="market-title">TIENDA</div>
         <div class="wallet mini"><span class="cup-ico">🪙</span><span class="cup-n" id="chests-hearts">0</span></div>
+        <div class="wallet mini"><span class="cup-ico">💎</span><span class="cup-n gem" id="chests-gems">0</span></div>
       </div>
-      <div class="chests-intro">Entre <b>más caro</b> el cofre, más chance de sacar animales <b style="color:#c77dff">ÉPICOS</b> y <b style="color:#ffd34d">LEGENDARIOS</b>.</div>
-      <div class="chest-grid" id="chest-grid"></div>
+      <div class="shop-sec"><div class="shop-head">🎁 GRATIS</div><div class="shop-row" id="shop-free"></div></div>
+      <div class="shop-sec"><div class="shop-head">⭐ OFERTAS DEL DÍA <small>cartas por oro · rotan diario</small></div><div class="shop-row" id="shop-deals"></div></div>
+      <div class="shop-sec"><div class="shop-head">📦 COFRES <small>ábrelos YA con gemas</small></div><div class="chest-grid" id="chest-grid"></div></div>
+      <div class="shop-sec"><div class="shop-head">💎 GEMAS <small>compra demo — sin pago real</small></div><div class="shop-row" id="shop-gems"></div></div>
     </div>
   </div>
 
@@ -92,6 +95,8 @@
         <div class="brand"><span class="brand-kicker">BATTLE ROYALE</span><span class="brand-name">HEARTS</span></div>
         <div class="top-actions">
           <button class="btn-mute" id="btn-mute" title="música y sonido">SONIDO ON</button>
+          <div class="wallet mini"><span class="cup-ico">🪙</span><span class="cup-n" id="wallet-gold">0</span></div>
+          <div class="wallet mini"><span class="cup-ico">💎</span><span class="cup-n gem" id="wallet-gems">0</span></div>
           <div class="wallet" id="wallet-chip">
             <span class="cup-ico">🏆</span><span class="cup-n" id="wallet-hearts">0</span>
             <span class="wallet-label">COPAS</span>
@@ -125,11 +130,13 @@
             <div class="pedestal"></div>
             <div class="avatar-meta"><span id="avatar-name">—</span><span class="token-id" id="avatar-token">#—</span></div>
           </div>
-          <button class="btn-flat btn-ranked" id="btn-ranked">JUGAR<small>sobrevive · no pierdas tus ♥</small></button>
+          <button class="btn-flat btn-ranked" id="btn-ranked">JUGAR<small>gana cofres 🎁 y copas 🏆</small></button>
           <div class="lobby-actions">
             <button class="btn-flat" id="btn-party">AMIGOS</button>
             <button class="btn-flat" id="btn-arenas">ARENAS</button>
           </div>
+          <!-- SLOTS DE COFRES (estilo Clash Royale): ganas cofres jugando, se abren con TIEMPO -->
+          <div class="chest-slots" id="chest-slots"></div>
         </section>
         <section class="panel">
           <div class="panel-head">TUS GUERREROS</div>
@@ -181,6 +188,16 @@
       <button class="btn-flat" id="reveal-again">ABRIR OTRO</button>
       <button class="btn-flat btn-ranked" id="reveal-close">GUARDAR</button>
     </div>
+  </div>
+</div>
+
+<!-- RECOMPENSAS DE COFRE (estilo CR: oro + varias cartas) -->
+<div class="modal-back" id="modal-rewards">
+  <div class="modal rewards-modal">
+    <h3 id="rw-title">¡COFRE ABIERTO!</h3>
+    <div class="rw-gold" id="rw-gold">+120 🪙</div>
+    <div class="rw-stacks" id="rw-stacks"></div>
+    <div class="modal-actions"><button class="btn-flat btn-ranked" id="btn-rewards-ok">¡GENIAL!</button></div>
   </div>
 </div>
 
@@ -396,20 +413,20 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/audio.js?v=121"></script>
-<script src="js/sprites.js?v=121"></script>
-<script src="js/mapart.js?v=121"></script>
-<script src="js/intro.js?v=121"></script>
-<script src="js/tutorial.js?v=121"></script>
-<script src="js/themes.js?v=121"></script>
-<script src="js/data.js?v=121"></script>
-<script src="js/weapons.js?v=121"></script>
-<script src="js/ui.js?v=121"></script>
-<script src="js/bomberman.js?v=121"></script>
-<script src="js/towerfall.js?v=121"></script>
-<script src="js/showdown.js?v=121"></script>
-<script src="js/bros.js?v=121"></script>
-<script src="js/match.js?v=121"></script>
-<script src="js/main.js?v=121"></script>
+<script src="js/audio.js?v=122"></script>
+<script src="js/sprites.js?v=122"></script>
+<script src="js/mapart.js?v=122"></script>
+<script src="js/intro.js?v=122"></script>
+<script src="js/tutorial.js?v=122"></script>
+<script src="js/themes.js?v=122"></script>
+<script src="js/data.js?v=122"></script>
+<script src="js/weapons.js?v=122"></script>
+<script src="js/ui.js?v=122"></script>
+<script src="js/bomberman.js?v=122"></script>
+<script src="js/towerfall.js?v=122"></script>
+<script src="js/showdown.js?v=122"></script>
+<script src="js/bros.js?v=122"></script>
+<script src="js/match.js?v=122"></script>
+<script src="js/main.js?v=122"></script>
 </body>
 </html>

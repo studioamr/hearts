@@ -478,28 +478,6 @@ const ARENAS=[
   requestAnimationFrame(frame);
 })();
 
-/* ================= PIXEL-ART: mismo estilo de sprite que el juego ================= */
-function pixelize(img){
-  if(img.dataset.pix) return; img.dataset.pix='1';
-  const done=()=>{
-    if(!img.naturalWidth || img.src.indexOf('data:')===0) return;
-    const PIXH=42, ph=PIXH, pw=Math.max(1,Math.round(PIXH*(img.naturalWidth/img.naturalHeight)));
-    const t=document.createElement('canvas'); t.width=pw; t.height=ph;
-    const tg=t.getContext('2d'); tg.imageSmoothingEnabled=true; tg.imageSmoothingQuality='high';
-    tg.drawImage(img,0,0,pw,ph);
-    const sil=document.createElement('canvas'); sil.width=pw; sil.height=ph;           // contorno oscuro
-    const sg=sil.getContext('2d'); sg.drawImage(t,0,0);
-    sg.globalCompositeOperation='source-in'; sg.fillStyle='#161018'; sg.fillRect(0,0,pw,ph);
-    const S=6, c=document.createElement('canvas'); c.width=(pw+2)*S; c.height=(ph+2)*S;
-    const g=c.getContext('2d'); g.imageSmoothingEnabled=false;
-    [[0,1],[2,1],[1,0],[1,2],[0,0],[2,2],[2,0],[0,2]].forEach(o=>g.drawImage(sil,o[0]*S,o[1]*S,pw*S,ph*S));
-    g.drawImage(t,S,S,pw*S,ph*S);
-    img.onload=null; img.src=c.toDataURL(); img.classList.add('pix');
-  };
-  if(img.naturalWidth) done(); else img.onload=done;
-}
-document.querySelectorAll('.mon-card img,.rar img,.arena-thumb img.mon').forEach(pixelize);
-
 /* ================= scroll reveal ================= */
 const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.remove('pre');e.target.classList.add('in');}}),{threshold:.06});
 document.querySelectorAll('.reveal').forEach(el=>{ el.classList.add('pre'); io.observe(el); });

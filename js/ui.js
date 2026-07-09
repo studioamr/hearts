@@ -66,7 +66,7 @@ function enterLobby(){
   c.clearRect(0,0,cv.width,cv.height);
   if(an){
     const sp=Sprites.spriteCanvas(an);
-    c.imageSmoothingEnabled=false;                    // pixel-art nítido
+    c.imageSmoothingEnabled=true; c.imageSmoothingQuality='high';
     // ajusta al marco respetando el aspecto del sticker
     const k=Math.min(340/sp.height, 300/sp.width);
     const w=sp.width*k, h=sp.height*k;
@@ -109,7 +109,7 @@ function enterLobby(){
   const wr=st.matches?Math.round(st.wins/st.matches*100):0;
   $('#lobby-record').innerHTML=`PARTIDAS ${st.matches}<br>VICTORIAS ${st.wins} (${wr}%)<br>🏆 GANADAS ${st.cupsWon|0}`;
   if(window.MUSIC) MUSIC.lobby();
-  renderMarket(); renderChests();          // los paneles TIENDA y CARTAS siempre listos (estilo CR)
+  renderMarket(); renderShop(); renderSlots();   // los 3 paneles siempre listos (estilo CR)
   show('#screen-main');
   initPager();
   startLobbyBG();
@@ -141,6 +141,125 @@ function initPager(){
     const n=prompt('Tu nombre:', st.name||'JUGADOR');
     if(n&&n.trim()){ st.name=n.trim().slice(0,14); DATA.save(); enterLobby(); }
   });
+  // reloj del modelo CR: refresca slots + cofre gratis cada segundo
+  setInterval(()=>{ if($('#screen-main').classList.contains('active')){ renderSlots(); tickFree(); } },1000);
+  // modal de recompensas
+  const rok=$('#btn-rewards-ok');
+  if(rok) rok.addEventListener('click',()=>{ SFX.click(); $('#modal-rewards').classList.remove('show'); renderMarket(); renderSlots(); renderShop(); updateHearts(); });
+}
+
+// ---------- SLOTS DE COFRES (estilo Clash Royale: ganas cofres jugando, tiempo para abrir) ----------
+function fmtT(s){ const m=Math.floor(s/60), ss=s%60; return m>0?(m+'m '+String(ss).padStart(2,'0')+'s'):(ss+'s'); }
+function renderSlots(){
+  const box=$('#chest-slots'); if(!box) return;
+  const sl=DATA.slots();
+  box.innerHTML='';
+  sl.forEach((s,i)=>{
+    const d=document.createElement('div');
+    if(!s){ d.className='cslot empty'; d.innerHTML='<span class="cs-ic">·</span><small>gana cofres<br>jugando</small>'; box.appendChild(d); return; }
+    const ch=DATA.byChest[s.chest];
+    if(s.state==='idle'){
+      d.className='cslot idle'; d.style.setProperty('--cc',ch.color);
+      d.innerHTML='<img src="assets/chests/'+s.chest+'.png?v=1" alt=""><small>'+ch.name.replace('COFRE DE ','').replace('COFRE ','')+'</small><b>⏱ '+fmtT(DATA.CHEST_META[s.chest].t)+'</b>';
+      d.title='Toca para empezar a desbloquear';
+      d.addEventListener('click',()=>{ if(DATA.startUnlock(i)){ SFX.click(); renderSlots(); } else { SFX.deny(); toast('Solo se desbloquea UN cofre a la vez'); } });
+    } else {
+      const left=DATA.unlockLeft(i);
+      if(left>0){
+        d.className='cslot unlocking'; d.style.setProperty('--cc',ch.color);
+        d.innerHTML='<img src="assets/chests/'+s.chest+'.png?v=1" alt=""><b class="cs-t">'+fmtT(left)+'</b><small class="cs-skip">YA: '+DATA.skipCost(i)+' 💎</small>';
+        d.addEventListener('click',()=>{
+          if(DATA.skipUnlock(i)){ SFX.coin(); renderSlots(); updateHearts(); }
+          else { SFX.deny(); toast('Te faltan gemas 💎 — consíguelas en la TIENDA o en el camino de copas'); }
+        });
+      } else {
+        d.className='cslot ready'; d.style.setProperty('--cc',ch.color);
+        d.innerHTML='<img src="assets/chests/'+s.chest+'.png?v=1" alt=""><b class="cs-open">¡ABRIR!</b>';
+        d.addEventListener('click',()=>{ const r=DATA.openSlot(i); if(r){ SFX.win(); showRewards(r); renderSlots(); } });
+      }
+    }
+    box.appendChild(d);
+  });
+}
+// ---------- RECOMPENSAS (oro + cartas) ----------
+function showRewards(r){
+  $('#rw-title').textContent='¡'+r.chest.name+'!';
+  $('#rw-gold').textContent='+'+r.gold+' 🪙';
+  const box=$('#rw-stacks'); box.innerHTML='';
+  r.stacks.forEach(sk=>{
+    const rc=DATA.RARITY[sk.rarity]||DATA.RARITY.common;
+    const el=document.createElement('div'); el.className='rw-card'; el.style.borderColor=rc.color;
+    const src=Sprites.spriteCanvas(sk.animal);
+    const cv=document.createElement('canvas'); cv.width=src.width; cv.height=src.height;
+    cv.getContext('2d').drawImage(src,0,0);
+    el.appendChild(cv);
+    el.insertAdjacentHTML('beforeend','<b style="color:'+rc.color+'">'+sk.animal.name+'</b><span>×'+sk.copies+(sk.isNew?' · <em>¡NUEVO!</em>':'')+'</span>');
+    box.appendChild(el);
+  });
+  $('#modal-rewards').classList.add('show');
+  updateHearts();
+}
+// ---------- TIENDA estilo CR ----------
+function tickFree(){
+  const t=$('#free-timer'); if(!t) return;
+  const left=DATA.freeLeft();
+  if(left>0){ t.textContent=fmtT(left); t.parentElement.classList.add('waiting'); }
+  else { t.textContent='¡LISTO!'; t.parentElement.classList.remove('waiting'); }
+}
+function renderShop(){
+  const st=DATA.state();
+  // GRATIS
+  const fr=$('#shop-free');
+  if(fr){
+    fr.innerHTML='';
+    const card=document.createElement('div'); card.className='deal-card free-card';
+    card.innerHTML='<img src="assets/chests/wood.png?v=1" alt=""><b>COFRE GRATIS</b><small>cada '+Math.round(DATA.FREE_EVERY/60)+' min</small><button class="chest-buy" id="btn-free">RECLAMAR</button><span class="free-t" id="free-timer"></span>';
+    fr.appendChild(card);
+    card.querySelector('#btn-free').addEventListener('click',()=>{
+      const r=DATA.claimFree();
+      if(r){ SFX.win(); showRewards(r); renderShop(); }
+      else { SFX.deny(); toast('Aún no está listo — espera el contador'); }
+    });
+    tickFree();
+  }
+  // OFERTAS DEL DÍA
+  const dl=$('#shop-deals');
+  if(dl){
+    dl.innerHTML='';
+    DATA.getDeals().forEach((d,i)=>{
+      const a=DATA.byId[d.id]; if(!a) return;
+      const rc=DATA.RARITY[a.rarity]||DATA.RARITY.common;
+      const card=document.createElement('div'); card.className='deal-card'+(d.bought?' sold':''); card.style.setProperty('--rc',rc.color);
+      const src=Sprites.spriteCanvas(a);
+      const cv=document.createElement('canvas'); cv.width=src.width; cv.height=src.height;
+      cv.getContext('2d').drawImage(src,0,0); card.appendChild(cv);
+      card.insertAdjacentHTML('beforeend','<b style="color:'+rc.color+'">'+a.name+'</b><small>×'+d.copies+' copias</small>'
+        +'<button class="chest-buy">'+(d.bought?'VENDIDO':(d.gold+' 🪙'))+'</button>');
+      if(!d.bought) card.querySelector('button').addEventListener('click',()=>{
+        const r=DATA.buyDeal(i);
+        if(r&&r.ok){ SFX.coin(); toast((r.isNew?'¡NUEVO! ':'')+r.animal.name+' ×'+r.copies); renderShop(); renderMarket(); updateHearts(); }
+        else { SFX.deny(); toast('Te faltan '+((r&&r.need)||d.gold)+' 🪙 — gana partidas'); }
+      });
+      dl.appendChild(card);
+    });
+  }
+  // COFRES por GEMAS
+  renderChests();
+  // GEMAS por $ (demo)
+  const gp=$('#shop-gems');
+  if(gp){
+    gp.innerHTML='';
+    DATA.GEM_PACKS.forEach(p=>{
+      const card=document.createElement('div'); card.className='deal-card gem-card'+(p.popular?' pop':'');
+      card.innerHTML='<span class="gem-big">💎</span><b>'+p.gems+' GEMAS</b>'+(p.popular?'<small>★ popular</small>':'<small>&nbsp;</small>')
+        +'<button class="chest-buy">$'+p.usd+'</button>';
+      card.querySelector('button').addEventListener('click',()=>{
+        DATA.buyGems(p.id); SFX.coin(); toast('+'+p.gems+' 💎 (compra demo)'); updateHearts();
+      });
+      gp.appendChild(card);
+    });
+  }
+  updateHearts();
 }
 
 // ---------- ONBOARDING: pantallas de bienvenida (copas/rangos + cómo jugar) ----------
@@ -168,32 +287,57 @@ function showOnboarding(){
 }
 function updateHearts(){
   const st=DATA.state();
-  { const el=$('#wallet-hearts'); if(el) el.textContent=st.cups|0; }   // monedero del lobby = COPAS 🏆
-  { const el=$('#market-hearts'); if(el) el.textContent=st.coins|0; }   // mercado = ORO 🪙 (compras monitos)
-  { const el=$('#chests-hearts'); if(el) el.textContent=st.coins|0; }
+  [['#wallet-hearts',st.cups|0],['#wallet-gold',st.coins|0],['#wallet-gems',st.gems|0],
+   ['#market-hearts',st.coins|0],['#chests-hearts',st.coins|0],['#chests-gems',st.gems|0]]
+   .forEach(([s,v])=>{ const el=$(s); if(el) el.textContent=v; });
 }
 function popHeart(){
   const h=$('#wallet-heart'); if(!h) return; h.classList.remove('pop'); void h.offsetWidth; h.classList.add('pop');
 }
 
-// ---------- ANIMALES (galería: ver los 50 monitos y sus tarjetas) ----------
+// ---------- CARTAS: colección estilo CLASH ROYALE (nivel + copias + MEJORAR) ----------
 let buyTarget=null;
 function renderMarket(){
   const st=DATA.state();
   const make=(a)=>{
     const rc=DATA.RARITY[a.rarity]||DATA.RARITY.common;
+    const owned=!!st.owned[a.id];
+    const c=DATA.cardOf(a.id);
     const card=document.createElement('div');
-    card.className='market-card'+(st.owned[a.id]?' owned':'')+(st.selected===a.id?' selected':'');
+    card.className='market-card'+(owned?' owned':' locked')+(st.selected===a.id?' selected':'');
     card.style.setProperty('--rc',rc.color);
     const src=Sprites.spriteCanvas(a);
     const cv=document.createElement('canvas'); cv.width=src.width; cv.height=src.height;
     cv.getContext('2d').drawImage(src,0,0);
     card.appendChild(cv);
     const nm=document.createElement('div'); nm.className='mc-name'; nm.textContent=a.name;
-    const pr=document.createElement('div'); pr.className='mc-rar';
-    pr.textContent = rc.name + (st.owned[a.id]?' · TUYO':'');
-    pr.style.color=rc.color;
-    card.appendChild(nm); card.appendChild(pr);
+    card.appendChild(nm);
+    if(owned){
+      const lv=document.createElement('div'); lv.className='mk-lvl'; lv.textContent='NIVEL '+c.level;
+      lv.style.background=rc.color; card.appendChild(lv);
+      if(c.level>=DATA.MAXLVL){
+        const mx=document.createElement('div'); mx.className='mk-prog max'; mx.textContent='★ MÁXIMO';
+        card.appendChild(mx);
+      } else {
+        const need=DATA.UPGRADE.copies[c.level];
+        const pr=document.createElement('div'); pr.className='mk-prog';
+        pr.innerHTML='<i style="width:'+Math.min(100,Math.round(c.copies/need*100))+'%"></i><b>'+c.copies+'/'+need+'</b>';
+        card.appendChild(pr);
+        if(DATA.canUpgrade(a.id)){
+          const up=document.createElement('button'); up.className='mk-upg';
+          up.textContent='MEJORAR · '+DATA.UPGRADE.gold[c.level]+' 🪙';
+          up.addEventListener('click',(e)=>{ e.stopPropagation();
+            const nl=DATA.upgradeCard(a.id);
+            if(nl){ SFX.win(); toast('¡'+a.name+' subió a NIVEL '+nl+'!'); renderMarket(); updateHearts(); }
+          });
+          card.appendChild(up);
+        }
+      }
+    } else {
+      const pr=document.createElement('div'); pr.className='mc-rar'; pr.style.color=rc.color;
+      pr.textContent='🔒 consíguelo en COFRES';
+      card.appendChild(pr);
+    }
     card.addEventListener('click',()=>openBuy(a));
     return card;
   };
@@ -214,7 +358,7 @@ function openBuy(a){    // "ver tarjeta" estilo mockup: header HEARTS · pips ·
   const cv=$('#buy-canvas'), c=cv.getContext('2d');
   c.clearRect(0,0,cv.width,cv.height);
   const sp=Sprites.spriteCanvas(a);
-  c.imageSmoothingEnabled=false;                      // pixel-art nítido
+  c.imageSmoothingEnabled=true; c.imageSmoothingQuality='high';
   const k=Math.min(230/sp.height, 220/sp.width);
   const w=sp.width*k, h=sp.height*k;
   c.drawImage(sp,(cv.width-w)/2,(cv.height-h)/2,w,h);
@@ -359,7 +503,7 @@ function renderPartySlots(){
       slot.className='pslot'+(m.me?' me':'');
       const cv=document.createElement('canvas'); cv.width=cv.height=40;
       const src=Sprites.spriteCanvas(m.animal), c=cv.getContext('2d');
-      const k=Math.min(40/src.height,40/src.width); c.imageSmoothingEnabled=false;
+      const k=Math.min(40/src.height,40/src.width); c.imageSmoothingEnabled=true;
       c.drawImage(src,(40-src.width*k)/2,(40-src.height*k)/2,src.width*k,src.height*k);
       slot.appendChild(cv);
       const nm=document.createElement('div'); nm.className='pn';
@@ -543,7 +687,7 @@ function playReveal(res){
       c.beginPath(); c.arc(cx,cy,26+k*115,0,7); c.stroke(); c.restore();
       const bounce=(1-Math.pow(1-k,3))*(1+0.14*Math.sin(k*Math.PI));   // rebote
       const scale=Math.min((Hc*0.72)/sp.height,(Wc*0.72)/sp.width)*bounce;
-      c.imageSmoothingEnabled=false;                  // pixel-art nítido
+      c.imageSmoothingEnabled=true; c.imageSmoothingQuality='high';
       const w=sp.width*scale, h=sp.height*scale;
       c.drawImage(sp,cx-w/2,cy-h/2+6,w,h);
       if(res.rarity==='legendary'){ for(let i=0;i<5;i++){ const a=t*2+i*1.3; c.fillStyle='#fff';
@@ -560,16 +704,19 @@ function openChestFlow(chestId){
   if(window.TUT) TUT.onChestOpened();
 }
 function renderChests(){
-  const st=DATA.state();
-  const grid=$('#chest-grid'); grid.innerHTML='';
+  const grid=$('#chest-grid'); if(!grid) return; grid.innerHTML='';
   DATA.CHESTS.forEach(ch=>{
-    const isFree = st.freeChest && ch.id==='wood';
-    const card=document.createElement('div'); card.className='chest-card'+(isFree?' free':''); card.style.setProperty('--cc',ch.color);
+    const gems=DATA.CHEST_GEMS[ch.id];
+    const card=document.createElement('div'); card.className='chest-card'; card.style.setProperty('--cc',ch.color);
     card.innerHTML=`<div class="chest-vis"><img src="assets/chests/${ch.id}.png?v=1" alt="${ch.name}"></div>
       <div class="chest-name">${ch.name}</div>
       <div class="chest-odds"><span class="od-e">ÉPICO ${ch.odds.epic}%</span> · <span class="od-l">LEG ${ch.odds.legendary}%</span></div>
-      <button class="chest-buy">${isFree?'GRATIS':('$'+ch.usd)}</button>`;
-    card.querySelector('.chest-buy').addEventListener('click',()=>openChestFlow(ch.id));
+      <button class="chest-buy">${gems} 💎</button>`;
+    card.querySelector('.chest-buy').addEventListener('click',()=>{
+      const r=DATA.buyChestGems(ch.id);
+      if(r){ SFX.win(); showRewards(r); renderMarket(); }
+      else { SFX.deny(); toast('Te faltan gemas 💎'); }
+    });
     grid.appendChild(card);
   });
 }
@@ -880,9 +1027,25 @@ function renderArenaLadder(){
     const right = st==='done' ? '✓ superada'
                 : st==='current' ? 'AQUÍ · '+h+' 🏆'
                 : 'faltan '+Math.max(0,t.hmin-h)+' 🏆';
+    // PREMIO del camino de copas (estilo CR): reclamable al alcanzar la arena
+    const rw=DATA.ROAD_REWARDS[i];
+    const rwTxt=rw?(rw.gold?rw.gold+' 🪙':rw.gems?rw.gems+' 💎':'📦 COFRE'):'';
+    let rwHtml='';
+    if(rw){
+      if(DATA.roadClaimable(i)) rwHtml='<button class="ar-claim" data-i="'+i+'">🎁 '+rwTxt+'</button>';
+      else if(DATA.state().roadClaimed&&DATA.state().roadClaimed[i]) rwHtml='<span class="ar-claimed">✓ '+rwTxt+'</span>';
+      else rwHtml='<span class="ar-reward">🔒 '+rwTxt+'</span>';
+    }
     row.innerHTML='<span class="ar-num" style="background:'+t.c1+'22;color:'+t.c1+'">'+(i+1)+'</span>'
       +'<span class="ar-name">'+(ARENA_NAMES[i]||'')+'<b style="color:'+t.c1+'">'+t.name+'</b></span>'
+      +rwHtml
       +'<span class="ar-req">'+right+'</span>';
+    const cb=row.querySelector('.ar-claim');
+    if(cb) cb.addEventListener('click',(e)=>{ e.stopPropagation();
+      const r=DATA.claimRoad(i);
+      if(r){ SFX.win(); toast('🎁 Reclamado: '+(r.gold?('+'+r.gold+' 🪙'):r.gems?('+'+r.gems+' 💎'):(r._full?'+200 🪙 (slots llenos)':'¡COFRE al slot!')));
+        renderArenaLadder(); renderSlots(); updateHearts(); }
+    });
     box.appendChild(row);
   }
 }

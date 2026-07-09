@@ -92,7 +92,7 @@ function startRanked(){
   if(!an){ SFX.deny(); UI.toast('Consigue tu guerrero: compra un cofre en la LANDING'); return; }
   st.matches++; DATA.save(); UI.updateHearts();   // VERSUS estilo TowerFall: rondas de eliminación
 
-  const players=[{name:st.name||'TÚ', animal:an, bot:false, color:COLORS[0], weapon:DATA.equipped()}];
+  const players=[{name:st.name||'TÚ', animal:an, bot:false, color:COLORS[0], weapon:DATA.equipped(), cardLvl:DATA.cardLevel(an.id)}];
   const WPOOL=DATA.WEAPONS;
   DATA.randomBots(DATA.ECON.PLAYERS-1, an.id).forEach((b,i)=>players.push({...b, color:COLORS[(i+1)%COLORS.length], weapon:WPOOL[Math.floor(Math.random()*WPOOL.length)]}));
   players.forEach(p=>{ p.hp=DATA.ECON.LIVES; p.elim=false; p.koRound=false; });
@@ -248,7 +248,14 @@ function finishMatch(){
   if(win) st.wins++;
   const dcups=win?30:-20;                                  // COPAS: ganas +30, pierdes −20 (Clash Royale)
   const b4=DATA.playerRankCups().idx; DATA.gainCups(dcups); const af=DATA.playerRankCups().idx;
-  const dgold=win?60:20; DATA.gainGold(dgold);             // ORO para el mercado
+  const dgold=win?60:20; DATA.gainGold(dgold);             // ORO para subir cartas
+  // COFRE por VICTORIA (estilo CR): entra a un slot; si están llenos, no cabe
+  let chestLine='';
+  if(win && !isParty){
+    const cid=DATA.rollVictoryChest(), slot=DATA.awardChest(cid);
+    chestLine = slot>=0 ? ('🎁 ¡GANASTE UN '+DATA.byChest[cid].name+'! → slot '+(slot+1))
+                        : '🎁 cofre ganado PERDIDO — slots llenos (abre tus cofres)';
+  }
   const lu = DATA.gainXP(xp);            // XP → nivel (regala cofres)
   DATA.save(); UI.updateHearts();
 
@@ -261,13 +268,14 @@ function finishMatch(){
   $('#results-cash').textContent = win ? 'quedaste como el último en pie' : 'caíste — inténtalo de nuevo';
   $('#results-xp').innerHTML = '<b style="color:'+(dcups>=0?'#ffd34d':'#ff8a7a')+'">'+(dcups>=0?'+':'')+dcups+' 🏆 · '+(st.cups|0)+' total'
     +(af>b4?'  ↑ ¡SUBISTE DE ARENA!':(af<b4?'  ↓ bajaste de arena':''))+'</b>'
+    +(chestLine?'<br><span style="color:#7fe0a0;font-weight:900">'+chestLine+'</span>':'')
     +'<br><span style="color:#ffcf5a">+'+dgold+' 🪙 oro</span>'
-    +'<br><span style="opacity:.7">+'+xp+' XP · Nivel '+DATA.level()+(lu.up?('  ★ ¡NIVEL '+lu.level+'! + COFRE'):'')+'</span>';
+    +'<br><span style="opacity:.7">+'+xp+' XP · Nivel '+DATA.level()+'</span>';
   if(win) SFX.win(); else SFX.lose();
   const cvs=$('#results-sprite'), c=cvs.getContext('2d');
   c.clearRect(0,0,cvs.width,cvs.height);
   const sp=Sprites.spriteCanvas(winner.animal);
-  c.imageSmoothingEnabled=false;                       // pixel-art nítido
+  c.imageSmoothingEnabled=true; c.imageSmoothingQuality='high';
   const k=Math.min(150/sp.height,130/sp.width);
   c.drawImage(sp,(cvs.width-sp.width*k)/2,(cvs.height-sp.height*k)/2,sp.width*k,sp.height*k);
   $('#results').classList.add('show');
@@ -428,7 +436,7 @@ function showModeResult(r){
     + (afterIdx>beforeIdx?'  ↑ ¡SUBISTE DE ARENA!':(afterIdx<beforeIdx?'  ↓ bajaste de arena':''));
   $('#results-xp').innerHTML='<b style="color:'+(dcups>=0?'#ffd34d':'#ff8a7a')+'">'+cupTxt+'</b><br><span style="opacity:.85;color:#ffcf5a">+'+dgold+' 🪙 oro · '+(st.coins|0)+' 🪙 total</span><br><span style="opacity:.7">+'+xp+' XP · Nivel '+DATA.level()+(lu.up?'  ★ ¡NIVEL '+lu.level+'!':'')+'</span>';
   const cvs=$('#results-sprite'), c=cvs.getContext('2d'); c.clearRect(0,0,cvs.width,cvs.height);
-  if(me){ const sp=Sprites.spriteCanvas(me.animal); c.imageSmoothingEnabled=false; const k=Math.min(150/sp.height,130/sp.width); c.drawImage(sp,(cvs.width-sp.width*k)/2,(cvs.height-sp.height*k)/2,sp.width*k,sp.height*k); }
+  if(me){ const sp=Sprites.spriteCanvas(me.animal); c.imageSmoothingEnabled=true; const k=Math.min(150/sp.height,130/sp.width); c.drawImage(sp,(cvs.width-sp.width*k)/2,(cvs.height-sp.height*k)/2,sp.width*k,sp.height*k); }
   $('#results').classList.add('show');
   if(window.MUSIC){ if(win)MUSIC.winner(); else MUSIC.lobby(); }
   if(win){ SFX.win(); UI.popHeart(); confetti(); } else SFX.lose();

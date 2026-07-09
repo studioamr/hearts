@@ -41,6 +41,7 @@ function start(canvas, players, cfg, onEnd, eco){
     const pw=p.animal.power||'';
     let spd=RUN*(1+(st.vel-5)*0.05);
     if(pw==='dash') spd*=1.32;
+    spd*=1+((p.cardLvl||1)-1)*0.05;      // NIVEL de carta (estilo CR): +5% velocidad por nivel
     const jit = i>=layout.spawns.length ? (Math.random()-0.5)*80 : 0;  // evita apilar cuando hay muchos
     const sz = p.animal.size || 1;                                     // tamaño según el animal
     return { p, x:sp[0]+jit, y:sp[1], vx:0, vy:0, w:(pw==='slippery'?24:30)*sz, h:42*sz, sz,
