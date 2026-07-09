@@ -338,13 +338,14 @@ function start(canvas, players, cfg, onEnd, eco){
         else startDodge(e, (Math.random()<0.5?-tx:tx), -1);                // esquiva vertical
       } else if(e.onG){ const r=Math.random(); if(r<0.45) e.wantJump=true; else if(r<0.8) e.crouchT=0.35; }
     }
-    const scared=e.p.hp<=1; // último corazón: sobrevive y saquea
+    const hunter=(GMID==='surv'&&e.enemy);  // DEPREDADOR: caza al jugador SIN miedo, no huye ni saquea
+    const scared=!hunter&&e.p.hp<=1; // último corazón: sobrevive y saquea
     if(scared&&tg&&Math.abs(tg.x-e.x)<150&&!heartT){ e.mvx=-Math.sign(tg.x-e.x)*espd(e); e.face=tg.x<e.x?-1:1; return; }
-    const goHeart = heartT&&(scared||(e.weap.kind==='bow'&&Math.random()<0.65)||!tg);
+    const goHeart = heartT&&(hunter ? (e.weap.kind==='bow'&&e.ammo===0) : (scared||(e.weap.kind==='bow'&&Math.random()<0.65)||!tg));
     const target = goHeart ? {x:heartT.x,y:heartT.y-10,h:20} : tg;
     if(!target){ e.mvx=0; return; }
     const dx=target.x-e.x, dy=(target.y-(target.h||42)/2)-(e.y-e.h/2);
-    if(Math.abs(dx)>40) e.mvx=Math.sign(dx)*espd(e)*0.85;
+    if(Math.abs(dx)>40) e.mvx=Math.sign(dx)*espd(e)*(hunter?1:0.85);
     else if(Math.random()<0.35) e.mvx=(Math.random()<0.5?-1:1)*espd(e)*0.6;
     else e.mvx=0;
     if(dy<-60&&e.onG&&Math.random()<0.6) e.wantJump=true;
@@ -831,6 +832,8 @@ function start(canvas, players, cfg, onEnd, eco){
   }
 
   raf=requestAnimationFrame(frame);
+  // hook de debug/balance (solo lectura): window.__tf.ents / .wave
+  window.__tf={ get ents(){ return ents; }, get wave(){ return wave; }, get mode(){ return GMID; } };
   return { stop(){ cancelAnimationFrame(raf); } };
 }
 

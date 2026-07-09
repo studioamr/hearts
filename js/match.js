@@ -149,7 +149,7 @@ function startParty(members){
 }
 
 // ===== SUPERVIVENCIA: tu animal vs SUS DEPREDADORES en oleadas (aguanta lo más que puedas) =====
-const SURV_MODE={id:'surv', name:'SUPERVIVENCIA', icon:'🌊', color:'#ff7a3c', respawn:1.4, dur:600,
+const SURV_MODE={id:'surv', name:'SUPERVIVENCIA', icon:'🌊', color:'#ff7a3c', respawn:1.4, dur:600, teams:true,
   blurb:'tus depredadores llegan en OLEADAS — cada una más rápida'};
 function startSurvival(){
   const st=DATA.state();
