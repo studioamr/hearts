@@ -1,7 +1,7 @@
 /* HEARTS FALL — arqueros battle royale: mueres y sueltas tus corazones */
 (function(){
-let W=832,H=640;               // dimensiones del MUNDO (4 pantallas de ancho — se fijan en start)
-let VW=832,VH=640,camX=0;      // dimensiones de la VISTA (el canvas) + cámara que sigue al jugador
+let W=832,H=640;               // dimensiones del MUNDO (CUADRADO: 2×2 pantallas — se fijan en start)
+let VW=832,VH=640,camX=0,camY=0;   // dimensiones de la VISTA (el canvas) + cámara que sigue al jugador
 const GRAV=1500, RUN=265, JUMP=-565;
 // tipos de flecha especiales (se consiguen en cofres)
 const ARROW_TYPES={
@@ -18,9 +18,9 @@ function start(canvas, players, cfg, onEnd, eco){
   const ctx=canvas.getContext('2d');
   const K=window.KIT;
   const M=window.MAPART;
-  // MAPA 4 VECES MÁS GRANDE: la VISTA llena tu pantalla y el MUNDO mide 4 pantallas de ancho.
-  // La cámara te sigue; el minimapa de abajo muestra el mapa completo.
-  let cols=16;
+  // MAPA 4 VECES MÁS GRANDE y CUADRADO (estilo Hunger Games): 2×2 pantallas,
+  // un jugador en cada ESQUINA y una CORNUCOPIA con botín en el CENTRO.
+  let cols=16, rows=12;
   { const stEl=canvas.parentElement;
     const sw=(stEl&&stEl.clientWidth)||window.innerWidth||screen.width||0;
     const sh=(stEl&&stEl.clientHeight)||window.innerHeight||screen.height||0;
@@ -28,9 +28,19 @@ function start(canvas, players, cfg, onEnd, eco){
     if(sw>0&&sh>0) vc=Math.max(16, Math.min(28, Math.round((640*(sw/sh))/52)));
     canvas.width=vc*52; canvas.height=640;
     VW=canvas.width; VH=canvas.height;         // vista = tu pantalla
-    cols=Math.min(112, vc*4);                  // mundo = 4 pantallas
-    W=cols*52; H=640; camX=Math.max(0,(W-VW)/2); }
-  const layout=THEMES.getFallLayout(eco||'selva',(cfg&&cfg.variant)||0, cols);
+    cols=Math.min(56, vc*2); rows=24;          // mundo = 2 pantallas de ancho × 2 de alto (cuadrado)
+    W=cols*52; H=rows*52+32;
+    camX=Math.max(0,(W-VW)/2); camY=Math.max(0,(H-VH)/2); }
+  const layout=THEMES.getFallLayout(eco||'selva',(cfg&&cfg.variant)||0, cols, rows);
+  // UNO EN CADA ESQUINA: los primeros 4 spawns son los más cercanos a cada esquina del mundo
+  if(layout.spawns && layout.spawns.length>=4){
+    const corners=[[50,50],[W-50,50],[50,H-60],[W-50,H-60]];
+    const pool=layout.spawns.slice(), picked=[];
+    corners.forEach(cn=>{ let bi=0,bd=Infinity;
+      pool.forEach((s,i)=>{ const d=(s[0]-cn[0])*(s[0]-cn[0])+(s[1]-cn[1])*(s[1]-cn[1]); if(d<bd){bd=d;bi=i;} });
+      picked.push(pool.splice(bi,1)[0]); });
+    layout.spawns=picked.concat(pool);
+  }
   const PLATS=layout.plats;
   const tf=THEMES.makeTFRender(layout.arena||'selva',layout);
   const parts=K.particles();
@@ -91,6 +101,13 @@ function start(canvas, players, cfg, onEnd, eco){
     if(stuck.length>14) stuck.shift();
   }
   let time=0, over=false, endTimer=0, raf=null, sudden=0, chestT=4;
+  // CORNUCOPIA (Hunger Games): botín inicial amontonado en el CENTRO del mundo
+  { const cx=W/2, cy=H/2;
+    const near=PLATS.slice().sort((a,b)=>{
+      const da=(a.x+a.w/2-cx)*(a.x+a.w/2-cx)+(a.y-cy)*(a.y-cy);
+      const db=(b.x+b.w/2-cx)*(b.x+b.w/2-cx)+(b.y-cy)*(b.y-cy); return da-db; })[0];
+    if(near){ const bx=near.x+near.w/2;
+      [-38,0,38].forEach(off=>chests.push({x:bx+off, y:near.y, t:Math.random()})); } }
   function spawnChest(){
     if(chests.length>=2) return;
     const sp=layout.spawns[Math.floor(Math.random()*layout.spawns.length)];
@@ -548,10 +565,12 @@ function start(canvas, players, cfg, onEnd, eco){
       if(endTimer<=0){ cancelAnimationFrame(raf); computeResult(); onEnd(result); return; }
     }
 
-    // CÁMARA: sigue a tu monito (o al líder vivo si caíste), con suavizado
+    // CÁMARA: sigue a tu monito (o al líder vivo si caíste), con suavizado, en ambos ejes
     { const meC=ents.find(e=>!e.p.bot&&!e.dead) || living()[0] || ents[0];
       if(meC){ const tx=Math.max(0, Math.min(W-VW, meC.x-VW/2));
-        camX += (tx-camX)*Math.min(1, dt*5); } }
+        const ty=Math.max(0, Math.min(H-VH, meC.y-VH/2));
+        camX += (tx-camX)*Math.min(1, dt*5);
+        camY += (ty-camY)*Math.min(1, dt*5); } }
     parts.update(dt);
     draw();
     raf=requestAnimationFrame(frame);
@@ -560,13 +579,18 @@ function start(canvas, players, cfg, onEnd, eco){
   function draw(){
     ctx.save(); K.applyShake(ctx);
     const bd=BACKDROPS[eco||'selva'];
-    if(bd){   // fondo atmosférico en la VISTA (parallax suave contra el mundo)
-      const s=Math.max(VW/bd.width,VH/bd.height)*1.12, bw=bd.width*s, bh=bd.height*s;
-      const px=(W>VW)?(camX/(W-VW)):(0.5);                       // 0..1 según dónde está la cámara
-      ctx.drawImage(bd,(VW-bw)*px,(VH-bh)/2,bw,bh);
+    if(bd){   // fondo atmosférico en la VISTA (parallax suave contra el mundo, ambos ejes)
+      const s=Math.max(VW/bd.width,VH/bd.height)*1.14, bw=bd.width*s, bh=bd.height*s;
+      const px=(W>VW)?(camX/(W-VW)):(0.5), py=(H>VH)?(camY/(H-VH)):(0.5);
+      ctx.drawImage(bd,(VW-bw)*px,(VH-bh)*py,bw,bh);
       ctx.fillStyle='rgba(6,8,16,.18)'; ctx.fillRect(0,0,VW,VH); // apenas oscurece: deja lucir el arte pixel
     }
-    ctx.save(); ctx.translate(-camX,0);                          // ===== MUNDO (con cámara) =====
+    ctx.save(); ctx.translate(-camX,-camY);                      // ===== MUNDO (con cámara) =====
+    // CORNUCOPIA: faro dorado al centro del mundo (ahí está el botín, como Hunger Games)
+    { const pu=0.5+0.5*Math.sin(time*2);
+      const gl=ctx.createLinearGradient(0,0,0,H);
+      gl.addColorStop(0,'rgba(255,211,77,0)'); gl.addColorStop(.45,'rgba(255,211,77,'+(0.05+0.07*pu)+')'); gl.addColorStop(.55,'rgba(255,211,77,'+(0.05+0.07*pu)+')'); gl.addColorStop(1,'rgba(255,211,77,0)');
+      ctx.fillStyle=gl; ctx.fillRect(W/2-46,0,92,H); }
     if(!bd) tf.bg(ctx,time);
     tf.blocks(ctx,time);
     // cofres del tesoro (estilo TowerFall)
@@ -733,18 +757,20 @@ function start(canvas, players, cfg, onEnd, eco){
       ctx.fillStyle='#b7b1a4'; ctx.font='bold 11px "Space Mono"';
       ctx.fillText('viendo el final de la ronda · te quedan ♥'+meE.p.hp,VW/2,120);
     }
-    // ===== MINIMAPA: todo el mapa en pequeño (abajo al centro) =====
-    { const mw=Math.min(250, VW*0.24), mh=Math.max(34, mw*(H/W)), mx=(VW-mw)/2, my=VH-mh-10, k=mw/W;
+    // ===== MINIMAPA: todo el mapa CUADRADO en pequeño (abajo al centro) =====
+    { const mw=Math.min(170, VW*0.16), mh=mw*(H/W), mx=(VW-mw)/2, my=VH-mh-10, k=mw/W, ky=mh/H;
       ctx.fillStyle='rgba(8,10,16,.68)'; ctx.fillRect(mx-3,my-3,mw+6,mh+6);
       ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=1.5; ctx.strokeRect(mx-3,my-3,mw+6,mh+6);
       ctx.fillStyle='rgba(255,255,255,.30)';
-      PLATS.forEach(p=>ctx.fillRect(mx+p.x*k, my+p.y*(mh/H), Math.max(2,p.w*k), 2));
+      PLATS.forEach(p=>ctx.fillRect(mx+p.x*k, my+p.y*ky, Math.max(2,p.w*k), 1.5));
+      // la cornucopia (centro) marcada en dorado
+      ctx.fillStyle='rgba(255,211,77,.9)'; ctx.fillRect(mx+mw/2-2, my+mh/2-2, 4, 4);
       ents.forEach(e=>{ if(e.dead) return;
         ctx.fillStyle=e.p.color||'#fff';
-        ctx.beginPath(); ctx.arc(mx+e.x*k, my+e.y*(mh/H), e.p.bot?2.5:3.5, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(mx+e.x*k, my+e.y*ky, e.p.bot?2.5:3.5, 0, 7); ctx.fill();
         if(!e.p.bot){ ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.stroke(); } });
       ctx.strokeStyle='rgba(255,211,77,.85)'; ctx.lineWidth=1.5;
-      ctx.strokeRect(mx+camX*k, my, VW*k, mh);                   // lo que estás viendo
+      ctx.strokeRect(mx+camX*k, my+camY*ky, VW*k, VH*ky);        // lo que estás viendo
     }
     if(meE&&!meE.dead&&ULTCD[meE.pow]){   // MEDIDOR de ULTIMATE del jugador (tecla R)
       const U=(DATA.POWERS&&DATA.POWERS[meE.pow])||{}, uc=U.color||'#ffd34d';

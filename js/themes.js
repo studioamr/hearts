@@ -383,18 +383,27 @@ TF_ARENAS.china={ name:'DRAGON', wrapY:false,
   pal:{block:'#7a2e2a',mortar:'#2a0e0c',top:'#ffce4a',bg1:'#241010',bg2:'#4a1a16',moon:'#ffe0a0',amb:'petals'},
   grids:TF_ARENAS.selva.grids };
 // compila un grid a rects sólidos + antorchas + spawns automáticos
-function compileArena(a,gi,cols){
+function compileArena(a,gi,cols,rows){
   let grid=a.grids[gi||0];
-  // MAPAS MÁS GRANDES: el mundo se arma ENLOSANDO las variantes una tras otra
-  // (16 columnas por losa) — plataformas por todo lo ancho, no un solo cúmulo al centro
-  const C=Math.max(16, (cols|0)||16);
-  if(C>16){
-    const n=a.grids.length, tiles=Math.ceil(C/16);
-    grid=grid.map((row,r)=>{
-      let s=row;
-      for(let k=1;k<tiles;k++) s+=a.grids[(gi+k)%n][r];
-      return s.slice(0,C);
-    });
+  // MUNDO CUADRADO (Hunger Games): se ENLOSAN las variantes en una cuadrícula 2×2
+  // (16 cols × 12 filas por losa) + una repisa de CORNUCOPIA tallada en el centro
+  const C=Math.max(16,(cols|0)||16), R=Math.max(12,(rows|0)||12);
+  if(C>16||R>12){
+    const n=a.grids.length, tilesX=Math.ceil(C/16), out=[];
+    for(let r=0;r<R;r++){
+      const band=Math.floor(r/12), rr=r%12;
+      let s='';
+      for(let k=0;k<tilesX;k++) s+=a.grids[(gi+band*2+k)%n][rr];
+      out.push(s.slice(0,C));
+    }
+    grid=out;
+    // CORNUCOPIA: repisa central despejada (ahí se amontona el botín)
+    if(C>=24&&R>=18){
+      const cr=Math.floor(R/2), cc=Math.floor(C/2);
+      const put=(r,str)=>{ grid[r]=grid[r].substring(0,cc-4)+str+grid[r].substring(cc+4); };
+      put(cr,'########');
+      put(cr-1,'........'); put(cr-2,'........');
+    }
   }
   const plats=[], torches=[];
   grid.forEach((row,r)=>{
@@ -406,14 +415,14 @@ function compileArena(a,gi,cols){
         // plataformas DELGADAS tipo puente/tronco flotante (18px), de un solo sentido
         // (aterrizas encima, saltas por debajo) — ya no bloques macizos de 52px
         plats.push({x:c*CELL,y:GRID_OY+r*CELL,w:(c2-c)*CELL,h:18,solid:true,wall:false});
-        if(c2-c>=4&&r<11) torches.push([(c+(c2-c)/2)*CELL,GRID_OY+r*CELL]);
+        if(c2-c>=4&&r<grid.length-1) torches.push([(c+(c2-c)/2)*CELL,GRID_OY+r*CELL]);
         c=c2;
       } else c++;
     }
   });
   // spawns: puntos parados sobre bloques, elegidos maximizando separación
   const spots=[];
-  for(let r=0;r<11;r++)for(let c=0;c<C;c++){
+  for(let r=0;r<grid.length-1;r++)for(let c=0;c<C;c++){
     if(grid[r][c]==='.'&&grid[r+1][c]==='#') spots.push([c*CELL+CELL/2, GRID_OY+(r+1)*CELL]);
   }
   const spawns=[];
@@ -437,7 +446,7 @@ function compileArena(a,gi,cols){
 //  Volvemos a las estructuras propias del juego (grid+tiles) sobre fondo escénico limpio.)
 const TF_ART={};
 const ALL_DOTS=Array.from({length:12},()=>'................');
-function getFallLayout(eco,variant,cols){
+function getFallLayout(eco,variant,cols,rows){
   const art=TF_ART[eco];
   if(art){
     return { mapName:(TF_ARENAS[eco]||TF_ARENAS.selva).name, arena:eco, variant:0, art:true,
@@ -446,7 +455,7 @@ function getFallLayout(eco,variant,cols){
       spawns: art.P.map(p=>[p[0]+p[2]/2, p[1]]) };
   }
   const a=TF_ARENAS[eco]||TF_ARENAS.selva;
-  const comp=compileArena(a,variant,cols);
+  const comp=compileArena(a,variant,cols,rows);
   return { mapName:a.name, arena:eco, variant:variant||0, wrap:true, wrapY:a.wrapY,
     plats:comp.plats, spawns:comp.spawns, grid:comp.grid, torches:comp.torches };
 }
@@ -456,17 +465,18 @@ function makeTFRender(eco,layout){
   if(!layout) layout=getFallLayout(eco,0);
   const g=layout.grid;
   const COLS=(g&&g[0])?g[0].length:16, PW=COLS*CELL;      // ancho real de la arena (mapas grandes)
-  const at=(c,r)=>r>=0&&r<12&&c>=0&&c<COLS&&g[r][c]==='#';
+  const ROWS=(g&&g.length)?g.length:12, PH=ROWS*CELL+32;  // alto real del mundo (cuadrado)
+  const at=(c,r)=>r>=0&&r<ROWS&&c>=0&&c<COLS&&g[r][c]==='#';
   const stars=[]; const r=rng(eco.length*131+(layout.variant||0)*17);
-  for(let i=0;i<Math.round(50*PW/832);i++) stars.push([r()*PW,r()*500,r()]);
-  const bgBricks=[]; for(let i=0;i<Math.round(26*PW/832);i++) bgBricks.push([r()*(PW-32),r()*600,30+r()*40]);
-  const amb=makeAmbient(pal.amb,PW,640);
+  for(let i=0;i<Math.round(50*PW*(PH/640)/832);i++) stars.push([r()*PW,r()*(PH-140),r()]);
+  const bgBricks=[]; for(let i=0;i<Math.round(26*PW*(PH/640)/832);i++) bgBricks.push([r()*(PW-32),r()*(PH-40),30+r()*40]);
+  const amb=makeAmbient(pal.amb,PW,PH);
   const hash=(c,r2,n)=>((c*7+r2*13+(layout.variant||0)*5)%n+n)%n;
   const blockImg=arenaTile(eco,pal,layout.variant);   // tile pixel-art de los bloques
 
   // corridas horizontales de bloques
   const runs=[];
-  for(let r2=0;r2<12;r2++){
+  for(let r2=0;r2<ROWS;r2++){
     let c=0;
     while(c<COLS){
       if(at(c,r2)&&!at(c-1,r2)){
@@ -503,15 +513,15 @@ function makeTFRender(eco,layout){
   // antorchas laterales en extremos de corridas
   const torches=[];
   runs.forEach(run=>{
-    if(run.r>=11) return;
+    if(run.r>=ROWS-1) return;
     if(!at(run.c0-1,run.r)) torches.push([run.c0*CELL+7, GRID_OY+run.r*CELL+16]);
     if(!at(run.c1+1,run.r)) torches.push([run.c1*CELL+CELL-7, GRID_OY+run.r*CELL+16]);
   });
 
   function bg(ctx,time){
-    const gr=ctx.createLinearGradient(0,0,0,640);
+    const gr=ctx.createLinearGradient(0,0,0,PH);
     gr.addColorStop(0,pal.bg1); gr.addColorStop(1,pal.bg2);
-    ctx.fillStyle=gr; ctx.fillRect(0,0,PW,640);
+    ctx.fillStyle=gr; ctx.fillRect(0,0,PW,PH);
     // textura de mazmorra al fondo
     bgBricks.forEach(([x,y,w])=>{ ctx.fillStyle='rgba(0,0,0,.16)'; ctx.fillRect(x,y,w,18); });
     stars.forEach(([x,y,s2])=>{
@@ -533,16 +543,16 @@ function makeTFRender(eco,layout){
       // troncos gigantes con luz entre el dosel
       [[120,0.9],[416,1.15],[712,0.9]].forEach(([x,k])=>{
         ctx.fillStyle='rgba(10,28,12,.6)';
-        ctx.fillRect(x-34*k,0,68*k,640);
+        ctx.fillRect(x-34*k,0,68*k,PH);
         ctx.fillStyle='rgba(30,64,26,.5)';
-        ctx.fillRect(x-34*k,0,12*k,640);
+        ctx.fillRect(x-34*k,0,12*k,PH);
         for(let b=0;b<4;b++){ const by=90+b*150+((x*7)%40);
           ctx.fillRect(x+20*k,by,40,10); ctx.fillRect(x-60*k,by+70,44,10); }
       });
       const sh=ctx.createLinearGradient(0,0,0,400);
       sh.addColorStop(0,'rgba(214,255,140,.10)'); sh.addColorStop(1,'rgba(214,255,140,0)');
       ctx.fillStyle=sh;
-      ctx.beginPath(); ctx.moveTo(300,0); ctx.lineTo(390,0); ctx.lineTo(500,640); ctx.lineTo(380,640); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(300,0); ctx.lineTo(390,0); ctx.lineTo(500,PH); ctx.lineTo(380,PH); ctx.fill();
     } else if(eco==='volcan'){
       // estatuas guardianas en la penumbra
       [[300,330],[532,330]].forEach(([x,y])=>{
@@ -551,9 +561,9 @@ function makeTFRender(eco,layout){
         ctx.fillRect(x-34,y-52,68,120);
         ctx.fillRect(x-48,y-40,14,60); ctx.fillRect(x+34,y-40,14,60);
       });
-      const lg=ctx.createLinearGradient(0,540,0,640);
+      const lg=ctx.createLinearGradient(0,PH-100,0,PH);
       lg.addColorStop(0,'rgba(255,110,30,0)'); lg.addColorStop(1,'rgba(255,110,30,.20)');
-      ctx.fillStyle=lg; ctx.fillRect(0,540,PW,100);
+      ctx.fillStyle=lg; ctx.fillRect(0,PH-100,PW,100);
     } else if(eco==='desierto'){
       // parches de atardecer + rostros de glifo
       [[140,150,110],[620,340,130],[330,480,100]].forEach(([x,y,w])=>{
@@ -588,9 +598,9 @@ function makeTFRender(eco,layout){
       }
     });
     // neblina baja
-    const fg=ctx.createLinearGradient(0,520,0,640);
+    const fg=ctx.createLinearGradient(0,PH-120,0,PH);
     fg.addColorStop(0,pal.bg2+'00'); fg.addColorStop(1,pal.moon+'1e');
-    ctx.fillStyle=fg; ctx.fillRect(0,520,PW,120);
+    ctx.fillStyle=fg; ctx.fillRect(0,PH-120,PW,120);
   }
 
   function flame(ctx,x,y,time,i,col1,col2){
@@ -613,18 +623,18 @@ function makeTFRender(eco,layout){
       });
       ctx.restore();
       amb.draw(ctx,time);
-      if(M) M.vignette(ctx,PW,640);
+      if(M) M.vignette(ctx,PW,PH);
       return;
     }
     // marco del escenario (anillo decorado)
     ctx.fillStyle=pal.mortar;
-    ctx.fillRect(0,0,PW,10); ctx.fillRect(0,630,PW,10);
-    ctx.fillRect(0,0,10,640); ctx.fillRect(PW-10,0,10,640);
+    ctx.fillRect(0,0,PW,10); ctx.fillRect(0,PH-10,PW,10);
+    ctx.fillRect(0,0,10,PH); ctx.fillRect(PW-10,0,10,PH);
     ctx.fillStyle=pal.block;
-    for(let x=0;x<PW;x+=52){ ctx.fillRect(x+4,2,44,6); ctx.fillRect(x+4,632,44,6); }
-    for(let y=0;y<640;y+=52){ ctx.fillRect(2,y+4,6,44); ctx.fillRect(PW-8,y+4,6,44); }
+    for(let x=0;x<PW;x+=52){ ctx.fillRect(x+4,2,44,6); ctx.fillRect(x+4,PH-8,44,6); }
+    for(let y=0;y<PH;y+=52){ ctx.fillRect(2,y+4,6,44); ctx.fillRect(PW-8,y+4,6,44); }
     if(eco==='desierto'){ ctx.fillStyle='#c92a2a';
-      for(let x=26;x<PW;x+=104){ ctx.beginPath(); ctx.arc(x,5,4,0,7); ctx.arc(x,635,4,0,7); ctx.fill(); } }
+      for(let x=26;x<PW;x+=104){ ctx.beginPath(); ctx.arc(x,5,4,0,7); ctx.arc(x,PH-5,4,0,7); ctx.fill(); } }
 
     // colgantes DETRÁS de los bloques
     hangs.forEach(h=>{
@@ -652,7 +662,7 @@ function makeTFRender(eco,layout){
     });
 
     // PUENTES / TRONCOS flotantes delgados (18px) — ya no bloques macizos de 52px
-    for(let r2=0;r2<12;r2++)for(let c=0;c<COLS;c++){
+    for(let r2=0;r2<ROWS;r2++)for(let c=0;c<COLS;c++){
       if(!at(c,r2)) continue;
       const x=c*CELL, y=GRID_OY+r2*CELL, H=18;
       const left=!at(c-1,r2), right=!at(c+1,r2);
