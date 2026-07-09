@@ -329,8 +329,26 @@ body{
 }
 .market-title{font-family:'Archivo Black',sans-serif;letter-spacing:.2em;color:var(--btn-ink);font-size:16px}
 .market-bar .btn-flat{padding:8px 12px;font-size:10px;background:#9d968a}
-#screen-market .side{padding-top:74px;overflow-y:auto}
-#screen-market .market-grid{height:auto;align-content:start;padding-bottom:92px}
+#panel-cards .side{padding-top:74px;overflow-y:auto}
+#panel-cards .market-grid{height:auto;align-content:start;padding-bottom:92px}
+
+/* ===== PANTALLA PRINCIPAL estilo CLASH ROYALE: pager horizontal + pestañas ===== */
+#screen-main{background:#0b0810}
+.cr-pager{position:absolute;inset:0 0 62px 0;display:flex;overflow-x:auto;overflow-y:hidden;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;z-index:2;scrollbar-width:none}
+.cr-pager::-webkit-scrollbar{display:none}
+.cr-panel{position:relative;min-width:100%;height:100%;scroll-snap-align:start;scroll-snap-stop:always;overflow-y:auto;overflow-x:hidden}
+#panel-shop{background:radial-gradient(1100px 540px at 50% -12%,rgba(32,24,10,.88),rgba(8,6,12,.92) 72%)}
+#panel-cards .split{position:absolute;inset:0}
+.cr-tabs{position:absolute;left:0;right:0;bottom:0;height:62px;display:flex;z-index:10;
+  background:linear-gradient(180deg,#16131f,#0b0a12);border-top:1px solid rgba(255,255,255,.12)}
+.cr-tabs button{flex:1;background:none;border:none;cursor:pointer;color:#8f8a9e;
+  font-family:'Archivo Black',sans-serif;font-size:12px;letter-spacing:.14em;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  transition:color .15s,background .15s}
+.cr-tabs button .ct-ic{font-size:19px;line-height:1}
+.cr-tabs button.active{color:#ffd34d;background:rgba(255,211,77,.08);box-shadow:inset 0 3px 0 #ffd34d}
+.cr-tabs button:hover{color:#e7e2d6}
 .market-card{
   background:rgba(255,255,255,.10);border-radius:10px;padding:8px 6px 6px;
   display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;

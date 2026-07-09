@@ -92,11 +92,12 @@ const SIZE = {
 ANIMALS.forEach(a=>{ a.size = SIZE[a.id] || 1; });
 
 // ---- COFRES (gacha): entre más caro, mejores probabilidades ----
+// los cofres cuestan DINERO real (compra demo, sin pago de verdad); el duplicado se convierte en ORO
 const CHESTS = [
-  {id:'wood',   name:'COFRE DE MADERA', price:5,  color:'#b07b3a', odds:{common:82,rare:16,epic:2, legendary:0}},
-  {id:'silver', name:'COFRE DE PLATA',  price:15, color:'#c7ccd6', odds:{common:52,rare:34,epic:11,legendary:3}},
-  {id:'gold',   name:'COFRE DE ORO',    price:35, color:'#ffd34d', odds:{common:26,rare:38,epic:27,legendary:9}},
-  {id:'diamond',name:'COFRE DIAMANTE',  price:80, color:'#7ef0ff', odds:{common:6, rare:30,epic:42,legendary:22}},
+  {id:'wood',   name:'COFRE DE MADERA', usd:0.99,  color:'#b07b3a', odds:{common:82,rare:16,epic:2, legendary:0}},
+  {id:'silver', name:'COFRE DE PLATA',  usd:2.99,  color:'#c7ccd6', odds:{common:52,rare:34,epic:11,legendary:3}},
+  {id:'gold',   name:'COFRE DE ORO',    usd:6.99,  color:'#ffd34d', odds:{common:26,rare:38,epic:27,legendary:9}},
+  {id:'diamond',name:'COFRE DIAMANTE',  usd:14.99, color:'#7ef0ff', odds:{common:6, rare:30,epic:42,legendary:22}},
 ];
 const byChest={}; CHESTS.forEach(c=>byChest[c.id]=c);
 function rollRarity(odds){
@@ -105,13 +106,12 @@ function rollRarity(odds){
   for(const k of ['legendary','epic','rare','common']){ r-=(odds[k]||0); if(r<0) return k; }
   return 'common';
 }
-// abre un cofre: descuenta monedas, saca un animal random según rareza
+// abre un cofre: compra DEMO en dinero (no cobra de verdad); saca un animal random según rareza
 function openTreasure(chestId){
   const ch=byChest[chestId]; const st=S;
   if(!ch) return {ok:false,msg:'Cofre inválido'};
-  const free = st.freeChest && chestId==='wood';   // primer cofre de madera GRATIS
-  if(!free && st.hearts<ch.price) return {ok:false,msg:'No te alcanzan los corazones'};
-  if(free){ st.freeChest=false; } else { st.hearts-=ch.price; }
+  const free = st.freeChest && chestId==='wood';   // primer cofre de madera GRATIS (bienvenida)
+  if(free) st.freeChest=false;                     // el resto: compra demo en $ (sin pago real)
   let rarity=rollRarity(ch.odds);
   let pool=byRarity(rarity);
   while(pool.length===0 && rarity!=='common'){ rarity=({legendary:'epic',epic:'rare',rare:'common'})[rarity]; pool=byRarity(rarity); }
@@ -120,7 +120,7 @@ function openTreasure(chestId){
   const token=mint(animal.id);        // acuña / re-acuña
   if(!st.selected) st.selected=animal.id;
   let refund=0;
-  if(dupe && !free){ refund=Math.max(1,Math.round(ch.price*0.4)); st.hearts+=refund; }
+  if(dupe){ refund=Math.round((ECON.RARITY_GOLD[animal.rarity]||40)/2); S.coins+=refund; }  // duplicado → ORO (estilo CR)
   save();
   return {ok:true, animal, rarity, token, dupe, refund, chest:ch, free};
 }

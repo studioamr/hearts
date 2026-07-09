@@ -109,10 +109,38 @@ function enterLobby(){
   const wr=st.matches?Math.round(st.wins/st.matches*100):0;
   $('#lobby-record').innerHTML=`PARTIDAS ${st.matches}<br>VICTORIAS ${st.wins} (${wr}%)<br>🏆 GANADAS ${st.cupsWon|0}`;
   if(window.MUSIC) MUSIC.lobby();
-  show('#screen-lobby');
+  renderMarket(); renderChests();          // los paneles TIENDA y CARTAS siempre listos (estilo CR)
+  show('#screen-main');
+  initPager();
   startLobbyBG();
   renderArena();
   if(window.TUT) TUT.onLobby();
+}
+
+// ---------- PAGER estilo CLASH ROYALE: 3 paneles con swipe/scroll + pestañas ----------
+function goPanel(i){
+  const pg=$('#cr-pager'); if(!pg) return;
+  pg.scrollTo({left:pg.clientWidth*i, behavior:'smooth'});
+}
+function initPager(){
+  const pg=$('#cr-pager'), tabs=$('#cr-tabs'); if(!pg||pg.__wired) return; pg.__wired=true;
+  pg.scrollLeft=pg.clientWidth;                                  // arranca en BATALLA (centro)
+  tabs.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{ SFX.click();
+    tabs.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));   // feedback inmediato
+    goPanel(+b.dataset.panel); }));
+  let t=null;
+  pg.addEventListener('scroll',()=>{ clearTimeout(t); t=setTimeout(()=>{
+    const i=Math.round(pg.scrollLeft/pg.clientWidth);
+    tabs.querySelectorAll('button').forEach(b=>b.classList.toggle('active', +b.dataset.panel===i));
+    updateHearts();                                              // refresca oro/copas al cambiar de panel
+  },80); });
+  // tu placa = cambiar nombre (estilo CR: el nombre se edita, no hay login)
+  const plate=$('#lobby-username');
+  if(plate) plate.addEventListener('click',()=>{
+    const st=DATA.state();
+    const n=prompt('Tu nombre:', st.name||'JUGADOR');
+    if(n&&n.trim()){ st.name=n.trim().slice(0,14); DATA.save(); enterLobby(); }
+  });
 }
 
 // ---------- ONBOARDING: pantallas de bienvenida (copas/rangos + cómo jugar) ----------
@@ -215,8 +243,8 @@ function openBuy(a){    // "ver tarjeta" estilo mockup: header HEARTS · pips ·
 function closeBuy(){ $('#modal-buy').classList.remove('show'); }
 
 function initMarket(){
-  $('#btn-market').addEventListener('click',()=>{ SFX.click(); renderMarket(); show('#screen-market'); if(window.TUT)TUT.onMarketOpen(); });
-  $('#btn-market-back').addEventListener('click',()=>{ SFX.click(); enterLobby(); });
+  const bmk=$('#btn-market'); if(bmk) bmk.addEventListener('click',()=>{ SFX.click(); renderMarket(); goPanel(2); if(window.TUT)TUT.onMarketOpen(); });
+  const bmb=$('#btn-market-back'); if(bmb) bmb.addEventListener('click',()=>{ SFX.click(); goPanel(1); });
   $('#btn-buy-cancel').addEventListener('click',()=>{ SFX.click(); closeBuy(); });
   $('#btn-buy-select').addEventListener('click',()=>{
     const st=DATA.state();
@@ -481,7 +509,7 @@ function playReveal(res){
   const rr=$('#reveal-rarity'); rr.textContent=rc.name; rr.style.color=rc.color;
   $('#reveal-name').textContent=res.animal.name;
   $('#reveal-power').innerHTML='PODER · <b style="color:'+pw.color+'">'+pw.name+'</b><br><span>'+pw.blurb+'</span>';
-  $('#reveal-note').textContent=res.dupe?('Repetido · te devolvemos +'+res.refund+' ♥'):('¡Nuevo! Acuñado '+res.token);
+  $('#reveal-note').textContent=res.dupe?('Repetido · se convierte en +'+res.refund+' 🪙 oro'):('¡Nuevo! Acuñado '+res.token);
   const stage=$('.reveal-inner'); stage.classList.remove('done');
   const cv=$('#reveal-canvas'), c=cv.getContext('2d'), Wc=cv.width, Hc=cv.height, cx=Wc/2, cy=Hc/2;
   const sp=Sprites.spriteCanvas(res.animal);
@@ -540,14 +568,14 @@ function renderChests(){
     card.innerHTML=`<div class="chest-vis"><img src="assets/chests/${ch.id}.png?v=1" alt="${ch.name}"></div>
       <div class="chest-name">${ch.name}</div>
       <div class="chest-odds"><span class="od-e">ÉPICO ${ch.odds.epic}%</span> · <span class="od-l">LEG ${ch.odds.legendary}%</span></div>
-      <button class="chest-buy">${isFree?'GRATIS':(ch.price+' ♥')}</button>`;
+      <button class="chest-buy">${isFree?'GRATIS':('$'+ch.usd)}</button>`;
     card.querySelector('.chest-buy').addEventListener('click',()=>openChestFlow(ch.id));
     grid.appendChild(card);
   });
 }
 function initChests(){
-  $('#btn-chests').addEventListener('click',()=>{ SFX.click(); $('#modal-wallet').classList.remove('show'); renderChests(); updateHearts(); show('#screen-chests'); if(window.TUT) TUT.onChestsOpen(); });
-  $('#btn-chests-back').addEventListener('click',()=>{ SFX.click(); enterLobby(); });
+  $('#btn-chests').addEventListener('click',()=>{ SFX.click(); $('#modal-wallet').classList.remove('show'); renderChests(); updateHearts(); goPanel(0); if(window.TUT) TUT.onChestsOpen(); });
+  const bcb=$('#btn-chests-back'); if(bcb) bcb.addEventListener('click',()=>{ SFX.click(); goPanel(1); });
   $('#reveal-again').addEventListener('click',()=>{ SFX.click(); cancelAnimationFrame(revealRaf); if(lastChest) openChestFlow(lastChest); });
   $('#reveal-close').addEventListener('click',()=>{ SFX.click(); cancelAnimationFrame(revealRaf); $('#chest-reveal').classList.remove('show'); renderChests(); updateHearts(); });
 }
@@ -823,7 +851,7 @@ function startBiomeBG(cv, menu){
 }
 function startMenuBG(){ startBiomeBG($('#menu-bg'), $('#screen-menu')); }
 function startLobbyBG(){
-  const cv=$('#lobby-bg'); startBiomeBG(cv, $('#screen-lobby'));
+  const cv=$('#lobby-bg'); startBiomeBG(cv, $('#screen-main'));
   const idx=(window.DATA&&DATA.playerRankCups)?DATA.playerRankCups().idx:0;
   if(cv && cv.__bg && cv.__bg.setArena) cv.__bg.setArena(idx);   // fondo = TU arena actual (por copas)
 }
@@ -870,8 +898,8 @@ function initMenu(){
   const go=fn=>()=>{ SFX.click(); fn(); };
   $('#mm-versus').addEventListener('click', go(()=>MATCH.openModes()));
   $('#mm-coop').addEventListener('click', go(()=>MATCH.startMode(DATA.byMode['quest'])));
-  $('#mm-animals').addEventListener('click', go(()=>{ renderMarket(); show('#screen-market'); }));
-  $('#mm-store').addEventListener('click', go(()=>{ renderChests(); updateHearts(); show('#screen-chests'); }));
+  $('#mm-animals').addEventListener('click', go(()=>{ enterLobby(); goPanel(2); }));
+  $('#mm-store').addEventListener('click', go(()=>{ enterLobby(); goPanel(0); }));
   $('#mm-friends').addEventListener('click', go(()=>openParty()));
   $('#mm-monito').addEventListener('click', go(()=>enterLobby()));
   $('#wallet-menu').addEventListener('click',()=>{ const st=DATA.state(); fillProfile();

@@ -14,6 +14,10 @@ Promise.all([Sprites.load(DATA.ANIMALS), MAPART.load(), WEAP.load()]).then(()=>{
   UI.initTouch();
   UI.initMenu();
   MATCH.init();
-  UI.show('#screen-login');   // sin intro: directo al login (rojo/azul)
+  // ENTRADA estilo CLASH ROYALE: directo al juego, sin login que estorbe.
+  // Nombre por defecto (se cambia tocando tu placa); si vienes de la landing ya trae el tuyo.
+  const st=DATA.state();
+  if(!st.name){ st.name='JUGADOR'; DATA.save(); }
+  UI.enterLobby();
 });
 })();
