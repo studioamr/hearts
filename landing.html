@@ -159,7 +159,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;align-items:cent
 
 footer{padding:40px 6vw;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;align-items:center}
 footer .mono{font-size:11px;color:#8b8f9c;letter-spacing:.1em}
-.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s,transform .7s}
+.reveal{opacity:1;transform:none;transition:opacity .6s,transform .6s}
+.reveal.pre{opacity:0;transform:translateY(26px)}
 .reveal.in{opacity:1;transform:none}
 .disc{font-family:'Space Mono',monospace;font-size:10.5px;color:#6c7080;line-height:1.6;margin-top:26px;max-width:720px}
 </style>
@@ -477,8 +478,10 @@ const ARENAS=[
 })();
 
 /* ================= scroll reveal ================= */
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.14});
-document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.remove('pre');e.target.classList.add('in');}}),{threshold:.06});
+document.querySelectorAll('.reveal').forEach(el=>{ el.classList.add('pre'); io.observe(el); });
+// red de seguridad: si el observer no dispara (scroll raro/navegador), muestra TODO — nunca dejar negro
+setTimeout(()=>document.querySelectorAll('.reveal.pre').forEach(el=>el.classList.remove('pre')), 1200);
 </script>
 </body>
 </html>
