@@ -119,7 +119,10 @@ function start(canvas, players, cfg, onEnd, eco){
       const da=(a.x+a.w/2-cx)*(a.x+a.w/2-cx)+(a.y-cy)*(a.y-cy);
       const db=(b.x+b.w/2-cx)*(b.x+b.w/2-cx)+(b.y-cy)*(b.y-cy); return da-db; })[0];
     if(near){ const bx=near.x+near.w/2;
-      [-38,0,38].forEach(off=>chests.push({x:bx+off, y:near.y, t:Math.random()})); } }
+      [-38,0,38].forEach(off=>chests.push({x:bx+off, y:near.y, t:Math.random()}));
+      // SUPERVIVENCIA: TU monito arranca EN MEDIO (la cornucopia) — los depredadores te rodean
+      if(GMID==='surv'){ const me0=ents.find(e=>!e.p.bot);
+        if(me0){ me0.x=bx; me0.y=near.y-4; me0.vx=0; me0.vy=0; me0.inv=1.5; } } } }
   function spawnChest(){
     if(chests.length>=2) return;
     const sp=layout.spawns[Math.floor(Math.random()*layout.spawns.length)];
