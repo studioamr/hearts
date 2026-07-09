@@ -32,25 +32,25 @@ function renderRosters(){
 
 function initLogin(){
   const input=$('#login-name');
-  const st=DATA.state();
-  if(st.name){ input.value=st.name; $('#login-user-title').textContent='*'+st.name.toUpperCase()+'*'; }
-  // si compraste un monito en la tienda de la landing, ya te espera aquí
-  if(st.name && st.selected && DATA.byId[st.selected]){
-    const sub=document.querySelector('.login-sub');
-    if(sub) sub.innerHTML='✦ tu monito <b>'+DATA.byId[st.selected].name+'</b> te espera · dale ENTER';
-  }
   input.addEventListener('input',()=>{
     $('#login-user-title').textContent = input.value.trim()? '*'+input.value.trim().toUpperCase()+'*' : '*USUARIO*';
   });
+  // CUENTAS REALES (locales): si el usuario no existe se CREA con esa contraseña;
+  // si existe, valida y carga SU progreso (copas/oro/cartas/cofres).
   const enter=()=>{
-    const name=input.value.trim()||'USUARIO';
-    st.name=name; DATA.save(); SFX.click();
-    if(!st.onboarded) showOnboarding();   // usuario nuevo: pantallas de bienvenida + cofre
-    else enterLobby();                    // pantalla principal (fondo = tu arena)
+    const name=input.value.trim(), pass=($('#login-pass')||{}).value||'';
+    const r=DATA.loginOrCreate(name, pass);
+    if(!r.ok){ SFX.deny(); toast(r.err); return; }
+    SFX.click();
+    toast(r.created ? ('✦ Cuenta creada: '+name+' — tu progreso se guarda aquí') : ('¡De vuelta, '+name+'!'));
+    enterLobby();                          // usuario nuevo: el FTUE (1ª batalla) sale solo
   };
   $('#btn-enter').addEventListener('click',enter);
   input.addEventListener('keydown',e=>{ if(e.key==='Enter') enter(); });
   $('#login-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') enter(); });
+  // SALIR (logout): regresa al login para cambiar de cuenta
+  const lo=$('#btn-logout');
+  if(lo) lo.addEventListener('click',()=>{ SFX.click(); DATA.logout(); location.reload(); });
 }
 
 // ---------- lobby ----------
@@ -145,11 +145,10 @@ function maybeFTUE(){
   if(st.ftueSeen || st.matches>0) return;
   const ov=$('#ftue'); if(!ov) return;
   ov.classList.add('show');
-  const ni=$('#ftue-name'); if(ni&&st.name&&st.name!=='JUGADOR') ni.value=st.name;
+  const hi=$('#ftue-hola'); if(hi) hi.textContent='¡Hola, '+(st.name||'')+'!';
   if(ov.__wired) return; ov.__wired=true;
-  const saveName=()=>{ const v=(($('#ftue-name')||{}).value||'').trim(); if(v){ st.name=v.slice(0,14); } };
-  $('#ftue-go').addEventListener('click',()=>{ SFX.click(); saveName(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); MATCH.startRanked(); });
-  $('#ftue-skip').addEventListener('click',()=>{ SFX.click(); saveName(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); enterLobby(); });
+  $('#ftue-go').addEventListener('click',()=>{ SFX.click(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); MATCH.startRanked(); });
+  $('#ftue-skip').addEventListener('click',()=>{ SFX.click(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); enterLobby(); });
 }
 
 // ---------- CANDADOS de progreso (estilo CR: se desbloquea jugando → curiosidad) ----------

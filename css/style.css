@@ -551,6 +551,22 @@ body{
 #panel-battle .cslot b{color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.5)}
 #panel-battle .cslot.ready{border-color:#ffd34d}
 
+/* ===== LAYOUT DE COMPU: en pantallas anchas la home se abre en 3 COLUMNAS ===== */
+@media(min-width:1000px){
+  .cr-home{max-width:1200px;display:grid;column-gap:26px;row-gap:11px;align-content:start;
+    grid-template-columns:300px minmax(0,1fr) 330px;padding-top:16px}
+  .crh-top{grid-column:1/-1}
+  .crh-name,.crh-pass,.crh-arena,.crh-btns{grid-column:2}
+  #panel-battle .chest-slots{grid-column:2;margin-top:6px;align-items:flex-start}
+  #panel-battle .cr-home .crh-extras{display:contents}
+  #panel-battle .cr-home .crh-extras .panel:first-child{grid-column:1;grid-row:2/7;align-self:start;margin-top:0}
+  #panel-battle .cr-home .crh-extras .panel:last-child{grid-column:3;grid-row:2/7;align-self:start;margin-top:0}
+  .diorama-wrap{width:min(430px,100%)}
+  .diorama-wrap #lobby-avatar{width:126px;bottom:48px}
+  .cr3d{padding:18px 10px 16px}
+  #panel-battle .cslot{width:96px;height:106px;min-height:106px}
+}
+
 /* --- extras bajo el fold (bien espaciados) --- */
 .crh-extras{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;align-items:start}
 .crh-extras .panel{background:linear-gradient(180deg,rgba(13,32,60,.92),rgba(9,22,44,.94));border-color:#0c2a52;padding:14px 14px 16px}

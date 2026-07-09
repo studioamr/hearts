@@ -391,8 +391,43 @@ const DEFAULT = ()=>({
   freeChest:true,   // cofre de bienvenida GRATIS para el nuevo usuario
 });
 let S = DEFAULT();
+// ===== CUENTAS POR USUARIO (progreso guardado por cuenta, en este navegador) =====
+const ACC_KEY='hearts-accounts', SES_KEY='hearts-user';
+function accounts(){ try{ return JSON.parse(localStorage.getItem(ACC_KEY))||{}; }catch(e){ return {}; } }
+function saveAccounts(a){ try{ localStorage.setItem(ACC_KEY, JSON.stringify(a)); }catch(e){} }
+function session(){ try{ return localStorage.getItem(SES_KEY)||null; }catch(e){ return null; } }
+function logout(){ try{ localStorage.removeItem(SES_KEY); }catch(e){} }
+// entra o CREA la cuenta: si el usuario no existe se crea con esa contraseña; si existe, se valida
+function loginOrCreate(name, pass){
+  name=String(name||'').trim().slice(0,14);
+  if(name.length<2) return {ok:false, err:'Escribe un nombre (2+ letras)'};
+  const key=name.toUpperCase(), acc=accounts();
+  if(acc[key]){
+    if(String(acc[key].pass||'')!==String(pass||'')) return {ok:false, err:'Contraseña incorrecta para '+name};
+    S=Object.assign(DEFAULT(), acc[key].save||{}); S.name=acc[key].save&&acc[key].save.name||name;
+    try{ localStorage.setItem(SES_KEY,key); }catch(e){}
+    normalize(); save();
+    return {ok:true, created:false};
+  }
+  // cuenta NUEVA: si hay un save viejo con este mismo nombre, se adopta (migración amable)
+  let base=null;
+  try{ const raw=localStorage.getItem('hearts-save'); if(raw){ const old=JSON.parse(raw);
+    if(String(old.name||'').toUpperCase()===key) base=old; } }catch(e){}
+  S=base?Object.assign(DEFAULT(),base):DEFAULT(); S.name=name;
+  acc[key]={pass:String(pass||''), save:S};
+  saveAccounts(acc);
+  try{ localStorage.setItem(SES_KEY,key); }catch(e){}
+  normalize(); save();
+  return {ok:true, created:true};
+}
 function load(){
-  try{ const raw=localStorage.getItem('hearts-save'); if(raw) S=Object.assign(DEFAULT(),JSON.parse(raw)); }catch(e){}
+  const key=session(), acc=accounts();
+  if(key && acc[key]) S=Object.assign(DEFAULT(), acc[key].save||{});
+  else { try{ const raw=localStorage.getItem('hearts-save'); if(raw) S=Object.assign(DEFAULT(),JSON.parse(raw)); }catch(e){} }
+  normalize();
+  return S;
+}
+function normalize(){
   // limpia animales que ya no existan en el roster
   Object.keys(S.owned).forEach(id=>{ if(!byId[id]) delete S.owned[id]; });
   if(S.selected && !byId[S.selected]) S.selected=Object.keys(S.owned)[0]||null;
@@ -415,7 +450,6 @@ function load(){
   if(!S.owned[FREE_STARTER]){ S.owned[FREE_STARTER]='#0000'; if(!S.cards[FREE_STARTER]) S.cards[FREE_STARTER]={copies:0,level:1}; }
   if(!S.selected || !byId[S.selected]) S.selected=FREE_STARTER;
   if(typeof S.rank!=='number' || S.rank<0 || S.rank>=RANKS.length) S.rank=0;   // rango válido
-  return S;
 }
 // ---- armas: comprar / equipar ----
 function buyWeapon(id){
@@ -427,7 +461,11 @@ function buyWeapon(id){
 }
 function equipWeapon(id){ if(S.weapons.includes(id)&&byWeapon[id]){ S.weapon=id; save(); return true; } return false; }
 function equipped(){ return byWeapon[S.weapon]||byWeapon['bow_wood']; }
-function save(){ localStorage.setItem('hearts-save',JSON.stringify(S)); }
+function save(){
+  try{ localStorage.setItem('hearts-save',JSON.stringify(S)); }catch(e){}
+  const key=session();
+  if(key){ const a=accounts(); if(a[key]){ a[key].save=S; saveAccounts(a); } }
+}
 function reset(){ S=DEFAULT(); save(); }
 
 function level(){ return Math.floor(Math.sqrt(S.xp/40))+1; }
@@ -569,5 +607,6 @@ window.DATA = { ANIMALS, byId, WEAPONS, byWeapon, ECON, MODES, byMode, HEART_PAC
   CHEST_META, CHEST_GEMS, GEM_PACKS, UPGRADE, MAXLVL, ROAD_REWARDS, FREE_EVERY,
   cardOf, cardLevel, canUpgrade, upgradeCard, slots, awardChest, startUnlock, unlockLeft, skipCost, skipUnlock,
   openSlot, buyChestGems, freeLeft, claimFree, buyGems, getDeals, buyDeal, roadClaimable, claimRoad, rollVictoryChest,
-  RARITY_LIVES, FREE_STARTER, maxLivesOf, animalLives, isSpent, spendLives, refillLives };
+  RARITY_LIVES, FREE_STARTER, maxLivesOf, animalLives, isSpent, spendLives, refillLives,
+  loginOrCreate, logout, session };
 })();

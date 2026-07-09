@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=131">
+<link rel="stylesheet" href="css/style.css?v=132">
 </head>
 <body>
 
@@ -35,10 +35,10 @@
     </div>
   </div>
   <div class="login-card">
-    <div class="login-row"><label>LOG IN</label><input id="login-name" maxlength="14" placeholder="tu nombre" autocomplete="off"></div>
+    <div class="login-row"><label>USUARIO</label><input id="login-name" maxlength="14" placeholder="tu nombre" autocomplete="off"></div>
     <div class="login-row"><label>PASSWORD</label><input id="login-pass" type="password" placeholder="••••••" autocomplete="off"></div>
-    <button id="btn-enter" class="btn-flat">ENTER</button>
-    <div class="login-sub">BATTLE ROYALE · DEPREDADORES VS PRESAS</div>
+    <button id="btn-enter" class="btn-flat">ENTRAR</button>
+    <div class="login-sub">si el usuario NO existe, se CREA tu cuenta · tu progreso se guarda por usuario</div>
   </div>
 </section>
 
@@ -110,6 +110,7 @@
         </div>
         <button class="crh-mini" id="btn-leaderboard">TOP</button>
         <button class="crh-mini" id="btn-mute">SONIDO ON</button>
+        <button class="crh-mini" id="btn-logout" title="cambiar de cuenta">SALIR</button>
       </div>
 
       <!-- PASE HEARTS (candado) -->
@@ -200,9 +201,8 @@
   <div class="ftue-card">
     <div class="ftue-kicker">BIENVENIDO A</div>
     <div class="ftue-logo">HE<span>♥</span>RTS</div>
-    <p>Empiezas con el <b>RATÓN</b> 🐭 y <b>escalas</b>: gana copas 🏆,<br>sube de arena y consigue guerreros más fuertes.</p>
-    <input id="ftue-name" class="ftue-name" maxlength="14" placeholder="TU NOMBRE" autocomplete="off">
-    <button class="btn-flat btn-ranked ftue-go" id="ftue-go">⚔ ¡CREAR Y PELEAR!</button>
+    <p><b id="ftue-hola">¡Hola!</b> Empiezas con el <b>RATÓN</b> 🐭 y <b>escalas</b>:<br>gana copas 🏆, sube de arena y consigue guerreros más fuertes.</p>
+    <button class="btn-flat btn-ranked ftue-go" id="ftue-go">⚔ ¡TU PRIMERA BATALLA!</button>
     <button class="ftue-skip" id="ftue-skip">explorar primero</button>
   </div>
 </div>
@@ -456,22 +456,22 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/audio.js?v=131"></script>
-<script src="js/sprites.js?v=131"></script>
-<script src="js/mapart.js?v=131"></script>
-<script src="js/intro.js?v=131"></script>
-<script src="js/tutorial.js?v=131"></script>
-<script src="js/themes.js?v=131"></script>
-<script src="js/data.js?v=131"></script>
-<script src="js/weapons.js?v=131"></script>
-<script src="js/ui.js?v=131"></script>
-<script src="js/bomberman.js?v=131"></script>
-<script src="js/towerfall.js?v=131"></script>
-<script src="js/showdown.js?v=131"></script>
-<script src="js/bros.js?v=131"></script>
-<script src="js/match.js?v=131"></script>
+<script src="js/audio.js?v=132"></script>
+<script src="js/sprites.js?v=132"></script>
+<script src="js/mapart.js?v=132"></script>
+<script src="js/intro.js?v=132"></script>
+<script src="js/tutorial.js?v=132"></script>
+<script src="js/themes.js?v=132"></script>
+<script src="js/data.js?v=132"></script>
+<script src="js/weapons.js?v=132"></script>
+<script src="js/ui.js?v=132"></script>
+<script src="js/bomberman.js?v=132"></script>
+<script src="js/towerfall.js?v=132"></script>
+<script src="js/showdown.js?v=132"></script>
+<script src="js/bros.js?v=132"></script>
+<script src="js/match.js?v=132"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/net.js?v=131"></script>
-<script src="js/main.js?v=131"></script>
+<script src="js/net.js?v=132"></script>
+<script src="js/main.js?v=132"></script>
 </body>
 </html>
