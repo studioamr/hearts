@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=130">
+<link rel="stylesheet" href="css/style.css?v=131">
 </head>
 <body>
 
@@ -195,13 +195,14 @@
   <button data-panel="2"><i class="cico cards"></i>CARTAS</button>
 </nav>
 
-<!-- FTUE: la primera acción es PELEAR -->
+<!-- FTUE: crea tu usuario y tu primera acción es PELEAR -->
 <div class="ftue" id="ftue">
   <div class="ftue-card">
     <div class="ftue-kicker">BIENVENIDO A</div>
     <div class="ftue-logo">HE<span>♥</span>RTS</div>
-    <p>Sobrevive a 3 rivales. El último en pie gana<br><b>copas 🏆 y un cofre 🎁</b>.</p>
-    <button class="btn-flat btn-ranked ftue-go" id="ftue-go">⚔ ¡TU PRIMERA BATALLA!</button>
+    <p>Empiezas con el <b>RATÓN</b> 🐭 y <b>escalas</b>: gana copas 🏆,<br>sube de arena y consigue guerreros más fuertes.</p>
+    <input id="ftue-name" class="ftue-name" maxlength="14" placeholder="TU NOMBRE" autocomplete="off">
+    <button class="btn-flat btn-ranked ftue-go" id="ftue-go">⚔ ¡CREAR Y PELEAR!</button>
     <button class="ftue-skip" id="ftue-skip">explorar primero</button>
   </div>
 </div>
@@ -455,20 +456,22 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/audio.js?v=130"></script>
-<script src="js/sprites.js?v=130"></script>
-<script src="js/mapart.js?v=130"></script>
-<script src="js/intro.js?v=130"></script>
-<script src="js/tutorial.js?v=130"></script>
-<script src="js/themes.js?v=130"></script>
-<script src="js/data.js?v=130"></script>
-<script src="js/weapons.js?v=130"></script>
-<script src="js/ui.js?v=130"></script>
-<script src="js/bomberman.js?v=130"></script>
-<script src="js/towerfall.js?v=130"></script>
-<script src="js/showdown.js?v=130"></script>
-<script src="js/bros.js?v=130"></script>
-<script src="js/match.js?v=130"></script>
-<script src="js/main.js?v=130"></script>
+<script src="js/audio.js?v=131"></script>
+<script src="js/sprites.js?v=131"></script>
+<script src="js/mapart.js?v=131"></script>
+<script src="js/intro.js?v=131"></script>
+<script src="js/tutorial.js?v=131"></script>
+<script src="js/themes.js?v=131"></script>
+<script src="js/data.js?v=131"></script>
+<script src="js/weapons.js?v=131"></script>
+<script src="js/ui.js?v=131"></script>
+<script src="js/bomberman.js?v=131"></script>
+<script src="js/towerfall.js?v=131"></script>
+<script src="js/showdown.js?v=131"></script>
+<script src="js/bros.js?v=131"></script>
+<script src="js/match.js?v=131"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="js/net.js?v=131"></script>
+<script src="js/main.js?v=131"></script>
 </body>
 </html>

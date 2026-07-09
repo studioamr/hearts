@@ -129,11 +129,11 @@ function openTreasure(chestId){
 // COFRES por VICTORIA → 4 SLOTS con TIEMPO de desbloqueo → cartas (copias) + oro.
 // COPIAS + ORO → SUBIR DE NIVEL las cartas. GEMAS 💎 = prisa/cofres (se "compran" con $ demo).
 // COFRE GRATIS cada rato + OFERTAS del día + CAMINO DE COPAS con premios reclamables.
-const CHEST_META={   // t = segundos de desbloqueo (escala DEMO, cortos para probar el loop)
-  wood:   {t:60,   gold:[15,30],   stacks:2},
-  silver: {t:180,  gold:[40,80],   stacks:3},
-  gold:   {t:480,  gold:[100,200], stacks:4},
-  diamond:{t:900,  gold:[250,500], stacks:5},
+const CHEST_META={   // t = segundos de desbloqueo (escalar CUESTA: tiempos más largos)
+  wood:   {t:120,  gold:[15,30],   stacks:2},
+  silver: {t:480,  gold:[40,80],   stacks:3},
+  gold:   {t:1200, gold:[100,200], stacks:4},
+  diamond:{t:2700, gold:[250,500], stacks:5},
 };
 const CHEST_GEMS={wood:10, silver:25, gold:60, diamond:140};      // comprar cofre YA con gemas
 const GEM_PACKS=[
@@ -144,7 +144,7 @@ const GEM_PACKS=[
 const UPGRADE={ copies:[0,2,4,10,20], gold:[0,50,120,300,800] };  // de nivel L a L+1 (máx 5) — curva de montaña
 const MAXLVL=5;
 const COPIES_BY_RARITY={common:[3,6], rare:[2,3], epic:[1,2], legendary:[1,1]};
-const FREE_EVERY=240;                                             // seg entre cofres gratis (demo)
+const FREE_EVERY=600;                                             // seg entre cofres gratis (10 min)
 const ROAD_REWARDS=[ {gold:80},{gems:15},{gold:250},{chest:'gold'},{gems:30},{gold:800},{gems:60},{gold:2000} ];
 
 function cardOf(id){ if(!S.cards) S.cards={}; if(!S.cards[id]) S.cards[id]={copies:0, level:1}; return S.cards[id]; }
@@ -195,6 +195,9 @@ function rollChestRewards(chestId){
     if(chestId==='diamond'&&k===0&&(rar==='common'||rar==='rare')) rar='epic';   // diamante garantiza épico+
     let pool=byRarity(rar);
     while(pool.length===0&&rar!=='common'){ rar=({legendary:'epic',epic:'rare',rare:'common'})[rar]; pool=byRarity(rar); }
+    // ESCALAR CUESTA: 65% de las veces el cofre da COPIAS de un animal que YA tienes
+    const owned=pool.filter(a=>S.owned[a.id]);
+    if(owned.length && Math.random()<0.65) pool=owned;
     const an=pool[Math.floor(Math.random()*pool.length)];
     const [c0,c1]=COPIES_BY_RARITY[rar]; const copies=c0+Math.floor(Math.random()*(c1-c0+1));
     const isNew=addCopies(an.id,copies);
@@ -224,9 +227,9 @@ function getDeals(){
   if(S.shopDay!==today||!Array.isArray(S.shopDeals)){
     const pick=r=>{ const pool=byRarity(r); return pool[Math.floor(Math.random()*pool.length)].id; };
     S.shopDeals=[
-      {id:pick('common'),    copies:4, gold:60,  bought:false},
-      {id:pick('rare'),      copies:3, gold:150, bought:false},
-      {id:pick('epic'),      copies:2, gold:400, bought:false},
+      {id:pick('common'),    copies:3, gold:120, bought:false},
+      {id:pick('rare'),      copies:2, gold:350, bought:false},
+      {id:pick('epic'),      copies:1, gold:900, bought:false},
     ];
     S.shopDay=today; save();
   }
@@ -254,9 +257,9 @@ function claimRoad(idx){
 // cofre que GANAS por victoria (mejor arena = mejores cofres)
 function rollVictoryChest(){
   const idx=playerRankCups().idx, r=Math.random();
-  if(r<0.04+idx*0.01) return 'diamond';
-  if(r<0.16+idx*0.02) return 'gold';
-  if(r<0.55) return 'silver';
+  if(r<0.02+idx*0.006) return 'diamond';
+  if(r<0.10+idx*0.015) return 'gold';
+  if(r<0.42) return 'silver';
   return 'wood';
 }
 
@@ -293,7 +296,7 @@ const ECON = {
   COIN_REWARD: {1:60,2:35,3:22,4:14},
   RARITY_HEARTS: {common:25, rare:50, epic:90, legendary:150}, // ♥ con los que VIENE el monito según rareza
   RARITY_PRICE:  {common:0.99, rare:2.99, epic:6.99, legendary:14.99}, // (cofres) precio en dinero real (demo)
-  RARITY_GOLD:   {common:80, rare:240, epic:600, legendary:1500}, // ORO: precio del monito (curva más empinada)
+  RARITY_GOLD:   {common:150, rare:450, epic:1200, legendary:3000}, // ORO: precio del monito — conseguir más CUESTA
 };
 function animalHearts(a){ return (ECON.RARITY_HEARTS[a.rarity]||25); }
 function animalPrice(a){ return (ECON.RARITY_PRICE[a.rarity]||0.99); }

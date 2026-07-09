@@ -145,9 +145,11 @@ function maybeFTUE(){
   if(st.ftueSeen || st.matches>0) return;
   const ov=$('#ftue'); if(!ov) return;
   ov.classList.add('show');
+  const ni=$('#ftue-name'); if(ni&&st.name&&st.name!=='JUGADOR') ni.value=st.name;
   if(ov.__wired) return; ov.__wired=true;
-  $('#ftue-go').addEventListener('click',()=>{ SFX.click(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); MATCH.startRanked(); });
-  $('#ftue-skip').addEventListener('click',()=>{ SFX.click(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); });
+  const saveName=()=>{ const v=(($('#ftue-name')||{}).value||'').trim(); if(v){ st.name=v.slice(0,14); } };
+  $('#ftue-go').addEventListener('click',()=>{ SFX.click(); saveName(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); MATCH.startRanked(); });
+  $('#ftue-skip').addEventListener('click',()=>{ SFX.click(); saveName(); st.ftueSeen=true; DATA.save(); ov.classList.remove('show'); enterLobby(); });
 }
 
 // ---------- CANDADOS de progreso (estilo CR: se desbloquea jugando → curiosidad) ----------
@@ -550,73 +552,70 @@ function renderPacks(){
 }
 function openStore(){ renderPacks(); $('#modal-store').classList.add('show'); SFX.click(); }
 
-// ---- PARTY: jugar con amigos (sala + código; online real = servidor, por ahora bots cubren) ----
-let party=null;
-function genCode(){ const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<4;i++) s+=a[Math.floor(Math.random()*a.length)]; return 'HRT-'+s; }
-function randAnimal(){ return DATA.ANIMALS[Math.floor(Math.random()*DATA.ANIMALS.length)]; }
-function botName(){ return DATA.BOT_NAMES[Math.floor(Math.random()*DATA.BOT_NAMES.length)]; }
+// ---- PARTY ONLINE REAL: jugar con amigos por internet (WebRTC vía NET; el host corre el juego) ----
 function openParty(){
+  if(window.NET) NET.leave();
   $('#party-start').style.display=''; $('#party-room').style.display='none';
   $('#party-code-in').value='';
-  party=null;
   $('#modal-party').classList.add('show'); SFX.click();
 }
-function myAnimalOr(){ const an=DATA.byId[DATA.state().selected]; return an; }
-function partyRoom(){
+function partyRoom(codeTxt, soyHost){
   $('#party-start').style.display='none'; $('#party-room').style.display='';
-  $('#party-code').textContent=party.code;
-  renderPartySlots();
+  $('#party-code').textContent=codeTxt;
+  const st=$('#btn-party-start'); if(st) st.style.display=soyHost?'':'none';   // solo el HOST inicia
+  renderPartySlots([]);
 }
-function createParty(){
-  const an=myAnimalOr(); if(!an){ SFX.deny(); toast('Primero saca un guerrero (abre un cofre).'); return; }
-  party={ code:genCode(), members:[{me:true, name:DATA.state().name||'TÚ', animal:an}] };
-  partyRoom();
-}
-function joinParty(){
-  const code=($('#party-code-in').value||'').trim().toUpperCase();
-  if(code.replace(/[^A-Z0-9]/g,'').length<3){ SFX.deny(); toast('Escribe el código de tu amigo.'); return; }
-  const an=myAnimalOr(); if(!an){ SFX.deny(); toast('Primero saca un guerrero (abre un cofre).'); return; }
-  // simulado: entras a la party de un "host"
-  party={ code:code.indexOf('HRT-')===0?code:('HRT-'+code), members:[
-    {name:botName(), animal:randAnimal(), bot:true},
-    {me:true, name:DATA.state().name||'TÚ', animal:an}
-  ]};
-  partyRoom();
-}
-function renderPartySlots(){
-  const wrap=$('#party-slots'); wrap.innerHTML='';
+function renderPartySlots(list){
+  const wrap=$('#party-slots'); if(!wrap) return; wrap.innerHTML='';
+  const me=DATA.state().name;
   for(let i=0;i<4;i++){
-    const m=party.members[i], slot=document.createElement('div');
+    const m=list[i], slot=document.createElement('div');
     if(m){
-      slot.className='pslot'+(m.me?' me':'');
-      const cv=document.createElement('canvas'); cv.width=cv.height=40;
-      const src=Sprites.spriteCanvas(m.animal), c=cv.getContext('2d');
-      const k=Math.min(40/src.height,40/src.width); c.imageSmoothingEnabled=true;
-      c.drawImage(src,(40-src.width*k)/2,(40-src.height*k)/2,src.width*k,src.height*k);
-      slot.appendChild(cv);
+      const esYo=m.name===me;
+      slot.className='pslot'+(esYo?' me':'');
+      const an=DATA.byId[m.animal];
+      if(an){
+        const cv=document.createElement('canvas'); cv.width=cv.height=40;
+        const src=Sprites.spriteCanvas(an), c=cv.getContext('2d');
+        const k=Math.min(40/src.height,40/src.width); c.imageSmoothingEnabled=true;
+        c.drawImage(src,(40-src.width*k)/2,(40-src.height*k)/2,src.width*k,src.height*k);
+        slot.appendChild(cv);
+      }
       const nm=document.createElement('div'); nm.className='pn';
-      nm.innerHTML=(m.me?'★ ':'')+m.name+(m.bot?' <span style="opacity:.55;font-weight:400">(bot)</span>':'');
+      nm.innerHTML=(esYo?'★ ':'')+m.name+(m.host?' <span style="opacity:.6;font-weight:400">(host)</span>':'');
       slot.appendChild(nm);
     } else {
       slot.className='pslot empty';
-      slot.innerHTML='<span class="pn">esperando amigo…</span>';
-      const add=document.createElement('button'); add.className='add'; add.textContent='+ BOT';
-      add.onclick=()=>{ SFX.click(); party.members.push({name:botName(), animal:randAnimal(), bot:true}); renderPartySlots(); };
-      slot.appendChild(add);
+      slot.innerHTML='<span class="pn">esperando amigo…<br><small style="opacity:.6">los lugares vacíos los llenan bots</small></span>';
     }
     wrap.appendChild(slot);
   }
 }
+function createParty(){
+  if(!window.NET || !NET.ready()){ SFX.deny(); toast('Sin conexión a la red de juego — revisa tu internet'); return; }
+  toast('Creando party en línea…');
+  NET.setOnRoster(renderPartySlots);
+  NET.host(code=>{
+    if(!code){ SFX.deny(); toast('No se pudo crear la party'); return; }
+    partyRoom(code, true);
+    toast('Party creada: comparte el código '+code);
+  });
+}
+function joinParty(){
+  const code=($('#party-code-in').value||'').trim();
+  if(code.replace(/[^A-Za-z0-9]/g,'').length<3){ SFX.deny(); toast('Escribe el código de tu amigo.'); return; }
+  if(!window.NET || !NET.ready()){ SFX.deny(); toast('Sin conexión a la red de juego — revisa tu internet'); return; }
+  toast('Conectando con tu amigo…');
+  NET.setOnRoster(renderPartySlots);
+  NET.join(code, ok=>{ if(ok){ partyRoom(code.toUpperCase(), false); toast('¡Dentro! Espera a que el host inicie'); } });
+}
 function copyPartyCode(){
-  const t=party.code;
+  const t=$('#party-code').textContent;
   if(navigator.clipboard) navigator.clipboard.writeText(t).catch(()=>{});
-  toast('Código copiado: '+t+' — compártelo con tu amigo');
+  toast('Código copiado: '+t+' — mándaselo a tu amigo');
 }
 function startPartyGame(){
-  if(!party){ return; }
-  while(party.members.length<4) party.members.push({name:botName(), animal:randAnimal(), bot:true});
-  $('#modal-party').classList.remove('show');
-  MATCH.startParty(party.members.slice(0,4));
+  if(window.NET && NET.isHost()){ $('#modal-party').classList.remove('show'); NET.startGame(); }
 }
 function initParty(){
   $('#btn-party').addEventListener('click',()=>{ SFX.click(); openParty(); });

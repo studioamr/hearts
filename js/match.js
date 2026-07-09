@@ -148,6 +148,48 @@ function startParty(members){
   runRound();
 }
 
+// ===== ONLINE (host): partida REAL con amigos — LMS de una arena, 3 vidas c/u =====
+function startNetHost(roster, net){
+  const st=DATA.state();
+  const players=[];
+  roster.forEach((r,i)=>{
+    const an=DATA.byId[r.animal]||DATA.byId[DATA.FREE_STARTER];
+    const p={name:r.name, animal:an, bot:false, color:COLORS[i%COLORS.length],
+             weapon:DATA.equipped(), cardLvl:r.cardLvl||1};
+    if(!r.host){ p.remote=true; p.net={l:false,r:false,u:false,d:false,jump:0,dodge:0,shoot:0,ult:0}; r.p=p; }
+    players.push(p);
+  });
+  DATA.randomBots(Math.max(0,4-players.length), players[0].animal.id)
+    .forEach(b=>players.push({...b, color:COLORS[players.length%COLORS.length], weapon:DATA.byWeapon['bow_wood']}));
+  const mode=DATA.byMode['lms'];
+  players.forEach(p=>{ p.hp=mode.lives||3; p.elim=false; p.koRound=false; p.kills=0; p.skulls=0; p.score=0; });
+  current={ players, mode, netGame:true };
+  st.matches++; DATA.save();
+  // el HOST dicta el mundo (mismo cálculo que el motor)
+  const stage=$('#game-canvas').parentElement;
+  const sw=(stage&&stage.clientWidth)||window.innerWidth||screen.width||1280;
+  const sh=(stage&&stage.clientHeight)||window.innerHeight||screen.height||800;
+  const vc=Math.max(16,Math.min(28,Math.round((640*(sw/sh))/52)));
+  const cols=Math.min(56,vc*2), rows=24;
+  const eco=ECOS[Math.floor(Math.random()*ECOS.length)], variant=Math.floor(Math.random()*3);
+  $('#hud-pot').textContent=mode.lives||3;
+  const lbl=document.querySelector('.hud-pot-label'); if(lbl) lbl.textContent='VIDAS';
+  KIT.updateHudPlayers(players,()=>true);
+  $('#results').classList.remove('show'); $('#scoreboard').classList.remove('show');
+  document.querySelectorAll('.modal-back.show').forEach(x=>x.classList.remove('show'));
+  UI.show('#screen-game');
+  $('#hud-phase').textContent='ONLINE · '+eco.name;
+  const cfg={ duration:120, gameMode:mode, variant, forceCols:cols, forceRows:rows, net:{emit:net.emit} };
+  setTimeout(()=>{ window.TOWERFALL.start($('#game-canvas'), players, cfg, (result)=>{
+    const wEnt=result&&result.winner;
+    const wIdx=wEnt?players.indexOf(wEnt.p):0;
+    net.end({t:'end', wIdx:wIdx<0?0:wIdx, winner:(wEnt&&wEnt.p&&wEnt.p.name)||''});
+    showModeResult(result||{mode:'lms'});          // el host usa su pantalla normal (copas/oro/vidas/cofre)
+  }, eco.id); }, 400);
+  return {t:'start', eco:eco.id, ecoName:eco.name, variant, cols, rows, dur:120,
+          players:players.map(p=>({name:p.name, animal:p.animal.id, color:p.color}))};
+}
+
 const aliveList=()=>current.players.filter(p=>!p.elim);
 
 // asigna lugares a los recién eliminados (peor lugar primero)
@@ -490,5 +532,5 @@ function init(){
   $('#btn-results-lobby').addEventListener('click',()=>{ SFX.click(); $('#results').classList.remove('show'); UI.enterLobby(); });
 }
 
-window.MATCH={ init, openModes, startMode, startRanked, openRanks, startParty };
+window.MATCH={ init, openModes, startMode, startRanked, openRanks, startParty, startNetHost };
 })();

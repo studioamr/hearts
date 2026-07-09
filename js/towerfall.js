@@ -29,6 +29,7 @@ function start(canvas, players, cfg, onEnd, eco){
     canvas.width=vc*52; canvas.height=640;
     VW=canvas.width; VH=canvas.height;         // vista = tu pantalla
     cols=Math.min(56, vc*2); rows=24;          // mundo = 2 pantallas de ancho × 2 de alto (cuadrado)
+    if(cfg&&cfg.forceCols){ cols=cfg.forceCols; rows=cfg.forceRows||24; }   // ONLINE: el host dicta el mundo
     W=cols*52; H=rows*52+32;
     camX=Math.max(0,(W-VW)/2); camY=Math.max(0,(H-VH)/2); }
   const layout=THEMES.getFallLayout(eco||'selva',(cfg&&cfg.variant)||0, cols, rows);
@@ -361,36 +362,54 @@ function start(canvas, players, cfg, onEnd, eco){
     const me=ents.find(e=>!e.p.bot);
 
     if(!over){
-      if(me&&!me.dead){
-        const msp=espd(me);
-        me.mvx=0;
-        if(K.keys.has('ArrowLeft')||K.keys.has('KeyA')){me.mvx=-msp;me.face=-1;}
-        if(K.keys.has('ArrowRight')||K.keys.has('KeyD')){me.mvx=msp;me.face=1;}
-        const dn=K.keys.has('ArrowDown')||K.keys.has('KeyS');
-        me.crouch = dn && me.onG;
-        if(me.crouch) me.mvx*=0.25;
-        const upK=K.keys.has('ArrowUp')||K.keys.has('KeyW');
-        const lf=K.keys.has('ArrowLeft')||K.keys.has('KeyA'), rt=K.keys.has('ArrowRight')||K.keys.has('KeyD');
-        if(K.tap('Space')||K.tap('KeyZ')||K.tap('KeyK')){
-          if(dn && me.onG){ me.dropT=0.16; me.onG=false; me.vy=60; }   // ABAJO+SALTO: soltarse por la plataforma
-          else if(me.onG||me.jumps>0){ if(!me.onG)me.jumps--; me.vy=jumpV(me); SFX.jump(); }
+      // aplica un paquete de controles a un ent (sirve para el humano local Y para amigos ONLINE)
+      const applyInput=(e,IN)=>{
+        const msp=espd(e);
+        e.mvx=0;
+        if(IN.l){e.mvx=-msp;e.face=-1;}
+        if(IN.r){e.mvx=msp;e.face=1;}
+        const dn=!!IN.d;
+        e.crouch = dn && e.onG;
+        if(e.crouch) e.mvx*=0.25;
+        if(IN.jump){
+          if(dn && e.onG){ e.dropT=0.16; e.onG=false; e.vy=60; }   // ABAJO+SALTO: soltarse por la plataforma
+          else if(e.onG||e.jumps>0){ if(!e.onG)e.jumps--; e.vy=jumpV(e); SFX.jump(); }
         }
-        // DODGE (esquive/dash con i-frames, atrapa flechas) — C / SHIFT / L
-        if(K.tap('KeyC')||K.tap('ShiftLeft')||K.tap('ShiftRight')||K.tap('KeyL')){
-          let dx=(rt?1:0)-(lf?1:0), dy=(dn?1:0)-(upK?1:0);
-          if(dx===0&&dy===0) dx=me.face;
-          startDodge(me,dx,dy);
+        if(IN.dodge){
+          let dx=(IN.r?1:0)-(IN.l?1:0), dy=(dn?1:0)-(IN.u?1:0);
+          if(dx===0&&dy===0) dx=e.face;
+          startDodge(e,dx,dy);
         }
-        if(K.tap('KeyX')||K.tap('KeyJ')){
-          if(me.weap.kind==='sword') melee(me);
+        if(IN.shoot){
+          if(e.weap.kind==='sword') melee(e);
           else {
-            let ax=(rt?1:0)-(lf?1:0), ay=(dn?1:0)-(upK?1:0);   // PUNTERÍA 8 DIRECCIONES (con diagonales)
-            if(ax===0&&ay===0) ax=me.face;                      // sin dirección → hacia donde miras
-            shoot(me, ax, ay);
+            let ax=(IN.r?1:0)-(IN.l?1:0), ay=(dn?1:0)-(IN.u?1:0);   // PUNTERÍA 8 DIRECCIONES
+            if(ax===0&&ay===0) ax=e.face;
+            shoot(e, ax, ay);
           }
         }
-        if(K.tap('KeyR')) useUlt(me);   // ULTIMATE del animal
+        if(IN.ult) useUlt(e);
+      };
+      if(me&&!me.dead){
+        applyInput(me,{
+          l:K.keys.has('ArrowLeft')||K.keys.has('KeyA'),
+          r:K.keys.has('ArrowRight')||K.keys.has('KeyD'),
+          u:K.keys.has('ArrowUp')||K.keys.has('KeyW'),
+          d:K.keys.has('ArrowDown')||K.keys.has('KeyS'),
+          jump:K.tap('Space')||K.tap('KeyZ')||K.tap('KeyK'),
+          dodge:K.tap('KeyC')||K.tap('ShiftLeft')||K.tap('ShiftRight')||K.tap('KeyL'),
+          shoot:K.tap('KeyX')||K.tap('KeyJ'),
+          ult:K.tap('KeyR')
+        });
       }
+      // AMIGOS ONLINE: cada ent remoto aplica los controles que llegaron por la red
+      ents.forEach(e=>{
+        if(e.dead||!e.p.remote||!e.p.net) return;
+        const n=e.p.net;
+        applyInput(e,{ l:n.l, r:n.r, u:n.u, d:n.d,
+          jump:n.jump>0&&(n.jump--,true), dodge:n.dodge>0&&(n.dodge--,true),
+          shoot:n.shoot>0&&(n.shoot--,true), ult:n.ult>0&&(n.ult--,true) });
+      });
       ents.forEach(e=>{
         if(e.dead||!e.p.bot) return;
         e.think-=dt;
@@ -571,6 +590,16 @@ function start(canvas, players, cfg, onEnd, eco){
         const ty=Math.max(0, Math.min(H-VH, meC.y-VH/2));
         camX += (tx-camX)*Math.min(1, dt*5);
         camY += (ty-camY)*Math.min(1, dt*5); } }
+    // ONLINE (host): manda el estado del mundo a los amigos ~15 veces/seg
+    if(cfg.net&&cfg.net.emit){
+      cfg.net._t=(cfg.net._t||0)-dt;
+      if(cfg.net._t<=0){ cfg.net._t=0.066;
+        cfg.net.emit({t:'snap', gt:Math.round((DUR-time)*10)/10,
+          e:ents.map(x=>[Math.round(x.x),Math.round(x.y),x.face,x.dead?1:0,x.p.hp|0,Math.abs(x.mvx)>10?1:0]),
+          a:arrows.map(a=>[Math.round(a.x),Math.round(a.y),Math.round(Math.atan2(a.vy,a.vx)*100)/100]),
+          c:chests.map(ch=>[Math.round(ch.x),Math.round(ch.y)]) });
+      }
+    }
     parts.update(dt);
     draw();
     raf=requestAnimationFrame(frame);

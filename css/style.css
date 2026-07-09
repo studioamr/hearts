@@ -371,6 +371,11 @@ body{
 .ftue-logo span{color:var(--red);animation:heartbeat 1.4s ease-in-out infinite;display:inline-block}
 .ftue-card p{color:#c9cedd;font-size:14px;line-height:1.6;margin-bottom:18px}
 .ftue-card p b{color:#ffd34d}
+.ftue-name{display:block;width:100%;max-width:260px;margin:0 auto 14px;padding:13px 14px;border-radius:12px;
+  border:2px solid rgba(255,211,77,.4);background:rgba(255,255,255,.08);color:#fff;text-align:center;
+  font-family:'Archivo Black',sans-serif;font-size:16px;letter-spacing:.08em;outline:none}
+.ftue-name::placeholder{color:rgba(255,255,255,.35)}
+.ftue-name:focus{border-color:#ffd34d}
 .ftue-go{font-size:16px;padding:16px 30px;animation:pulse-slot 1.3s ease-in-out infinite}
 .ftue-skip{display:block;margin:14px auto 0;background:none;border:none;cursor:pointer;
   font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;color:#8f8a9e;text-decoration:underline}
