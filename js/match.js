@@ -133,23 +133,23 @@ function eliminate(list){
   list.forEach(p=>{ if(!p.elim){ p.elim=true; p.place=place--; } });
 }
 
-// dibuja el MAPA de la ronda (layout real de la arena) para la pantalla de selección
-function drawMapPreview(cv, ecoId, variant, players){
-  const L=THEMES.getFallLayout(ecoId, variant);
+// pantalla de selección de mapa: muestra SOLO EL FONDO del mapa (el arte del escenario)
+const MAP_PREVIEWS={};
+function drawMapPreview(cv, ecoId){
+  const c=cv.getContext('2d'), W=cv.width, H=cv.height;
+  cv.dataset.eco=ecoId;
+  const frame=()=>{ c.strokeStyle='rgba(255,255,255,.22)'; c.lineWidth=2; c.strokeRect(1,1,W-2,H-2); };
+  const paint=im=>{ const s=Math.max(W/im.width,H/im.height), w=im.width*s, h=im.height*s;
+    c.drawImage(im,(W-w)/2,(H-h)/2,w,h); frame(); };
+  let im=MAP_PREVIEWS[ecoId];
+  if(im && im.complete && im.naturalWidth){ paint(im); return; }
+  // mientras carga: degradado con la paleta del mundo (sigue siendo solo fondo)
   const a=(THEMES.TF_ARENAS && (THEMES.TF_ARENAS[ecoId]||THEMES.TF_ARENAS.selva))||null;
-  const pal=a?a.pal:{block:'#3e5d3a',top:'#6d9a5e',bg1:'#08110c',bg2:'#17301e'};
-  const c=cv.getContext('2d'), W=cv.width, H=cv.height, sx=W/832, sy=H/640;
+  const pal=a?a.pal:{bg1:'#08110c',bg2:'#17301e'};
   const g=c.createLinearGradient(0,0,0,H); g.addColorStop(0,pal.bg1); g.addColorStop(1,pal.bg2);
-  c.fillStyle=g; c.fillRect(0,0,W,H);
-  L.plats.forEach(p=>{                                   // bloques de la arena
-    c.fillStyle=pal.block; c.fillRect(p.x*sx,p.y*sy,Math.max(2,p.w*sx),Math.max(2,p.h*sy));
-    c.fillStyle=pal.top;   c.fillRect(p.x*sx,p.y*sy,Math.max(2,p.w*sx),2);
-  });
-  const sp=L.spawns||[];                                 // dónde aparece cada quien (su color)
-  players.forEach((p,i)=>{ const s=sp[i%sp.length]; if(!s) return;
-    c.fillStyle=p.color; c.beginPath(); c.arc(s[0]*sx,(s[1]-16)*sy,5,0,6.28); c.fill();
-    c.lineWidth=1.5; c.strokeStyle='rgba(0,0,0,.7)'; c.stroke(); });
-  c.strokeStyle='rgba(255,255,255,.22)'; c.lineWidth=2; c.strokeRect(1,1,W-2,H-2);
+  c.fillStyle=g; c.fillRect(0,0,W,H); frame();
+  if(!im){ im=new Image(); MAP_PREVIEWS[ecoId]=im; im.src='assets/maps/'+ecoId+'.png?v=4'; }
+  im.onload=()=>{ if(cv.dataset.eco===ecoId) paint(im); };
 }
 
 function runRound(){
@@ -168,7 +168,7 @@ function runRound(){
   $('#intro-desc').textContent=eco.name+' · el primero en caer pierde 1 ♥';
   $('#hud-phase').textContent='RONDA '+(m.round+1)+' · '+eco.name;
   $('#game-controls').textContent=MODE.controls;
-  if(pv){ pv.style.display=''; pv.classList.remove('zoom'); drawMapPreview(pv, eco.id, variant, parts); }
+  if(pv){ pv.style.display=''; pv.classList.remove('zoom'); drawMapPreview(pv, eco.id); }
   intro.classList.add('show'); SFX.phase();
   if(window.MUSIC) MUSIC.battle(m.round);
   if(pv){ void pv.offsetWidth; pv.classList.add('zoom'); }  // arranca el acercamiento
