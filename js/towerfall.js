@@ -519,7 +519,10 @@ function start(canvas, players, cfg, onEnd, eco){
       }
       // FIN según el MODO
       let endNow=false;
-      if(GMID==='lms'){ if(ents.filter(e=>e.p.hp>0).length<=1) endNow=true; }
+      if(GMID==='lms'){
+        if(cfg.minAlive){ if(ents.filter(e=>!e.dead).length<=cfg.minAlive) endNow=true; }  // TORNEO: cae el 1º → fin de ronda
+        else if(ents.filter(e=>e.p.hp>0).length<=1) endNow=true;                            // LMS suelto: último con vidas
+      }
       else if(GMID==='hunt'){ if(topSkulls()>=(GM.goal||10)) endNow=true; }
       else if(GMID==='tdm'){ if(teamKills(0)>=(GM.goal||15)||teamKills(1)>=(GM.goal||15)) endNow=true; }
       else if(GMID==='quest'){ if(questDone||questLost) endNow=true; }

@@ -89,17 +89,17 @@ function startRanked(){
   if(window.TUT) TUT.onRanked();
   const st=DATA.state();
   const an=DATA.byId[st.selected];
-  if(!an){ SFX.deny(); UI.toast('Necesitas un guerrero. Abre un cofre GRATIS en tu WALLET.'); return; }
-  if(st.hearts<=0){ SFX.deny(); UI.toast('Te quedaste sin ♥. Compra corazones o reclama tu bonus diario.'); return; }
-  st.matches++; DATA.save(); UI.updateHearts();   // SIN apuesta: se trata de SOBREVIVIR, no de apostar
+  if(!an){ SFX.deny(); UI.toast('Consigue tu guerrero: compra un cofre en la LANDING'); return; }
+  st.matches++; DATA.save(); UI.updateHearts();   // VERSUS estilo TowerFall: rondas de eliminación
 
   const players=[{name:st.name||'TÚ', animal:an, bot:false, color:COLORS[0], weapon:DATA.equipped()}];
   const WPOOL=DATA.WEAPONS;
   DATA.randomBots(DATA.ECON.PLAYERS-1, an.id).forEach((b,i)=>players.push({...b, color:COLORS[(i+1)%COLORS.length], weapon:WPOOL[Math.floor(Math.random()*WPOOL.length)]}));
   players.forEach(p=>{ p.hp=DATA.ECON.LIVES; p.elim=false; p.koRound=false; });
 
-  current={ players, round:0 };
-  $('#hud-pot').textContent=st.hearts;                       // tus ♥ (lo que proteges)
+  current={ players, round:0, ecoStart:Math.floor(Math.random()*ECOS.length) };
+  $('#hud-pot').textContent=DATA.ECON.LIVES;                 // vidas con las que entra cada quien
+  const lbl=document.querySelector('.hud-pot-label'); if(lbl) lbl.textContent='VIDAS';
   KIT.updateHudPlayers(players,()=>true);
   $('#results').classList.remove('show');
   $('#scoreboard').classList.remove('show');
@@ -133,56 +133,56 @@ function eliminate(list){
   list.forEach(p=>{ if(!p.elim){ p.elim=true; p.place=place--; } });
 }
 
+// dibuja el MAPA de la ronda (layout real de la arena) para la pantalla de selección
+function drawMapPreview(cv, ecoId, variant, players){
+  const L=THEMES.getFallLayout(ecoId, variant);
+  const a=(THEMES.TF_ARENAS && (THEMES.TF_ARENAS[ecoId]||THEMES.TF_ARENAS.selva))||null;
+  const pal=a?a.pal:{block:'#3e5d3a',top:'#6d9a5e',bg1:'#08110c',bg2:'#17301e'};
+  const c=cv.getContext('2d'), W=cv.width, H=cv.height, sx=W/832, sy=H/640;
+  const g=c.createLinearGradient(0,0,0,H); g.addColorStop(0,pal.bg1); g.addColorStop(1,pal.bg2);
+  c.fillStyle=g; c.fillRect(0,0,W,H);
+  L.plats.forEach(p=>{                                   // bloques de la arena
+    c.fillStyle=pal.block; c.fillRect(p.x*sx,p.y*sy,Math.max(2,p.w*sx),Math.max(2,p.h*sy));
+    c.fillStyle=pal.top;   c.fillRect(p.x*sx,p.y*sy,Math.max(2,p.w*sx),2);
+  });
+  const sp=L.spawns||[];                                 // dónde aparece cada quien (su color)
+  players.forEach((p,i)=>{ const s=sp[i%sp.length]; if(!s) return;
+    c.fillStyle=p.color; c.beginPath(); c.arc(s[0]*sx,(s[1]-16)*sy,5,0,6.28); c.fill();
+    c.lineWidth=1.5; c.strokeStyle='rgba(0,0,0,.7)'; c.stroke(); });
+  c.strokeStyle='rgba(255,255,255,.22)'; c.lineWidth=2; c.strokeRect(1,1,W-2,H-2);
+}
+
 function runRound(){
   const m=current;
-  const rot=MODE_ROT[m.round%MODE_ROT.length];        // (por ahora solo TowerFall)
-  const eco=ECOS[Math.floor(m.round/MODE_ROT.length)%ECOS.length]; // cada ronda cambia de mundo
+  const eco=ECOS[((m.ecoStart||0)+m.round)%ECOS.length]; // cada ronda cambia de mundo
   const parts=aliveList();
-  // SOLO UNO pierde ♥ por ronda: la ronda acaba en cuanto CAE el primero (todos empiezan con sus 3)
-  const rain=0, tax=0;
-  const cfg={ duration:60, minAlive: Math.max(1, parts.length-1), rain };
+  // ESTILO TOWERFALL: la ronda acaba en cuanto CAE el primero — ese pierde 1 ♥
+  const variant=Math.floor(Math.random()*3);
+  const cfg={ duration:60, minAlive:Math.max(1,parts.length-1), rain:0, variant };
+  const MODE=window.TOWERFALL, tower=MODE.mapNames[eco.id]||eco.name;
 
-  const intro=$('#phase-intro');
-  const MODE=rot.obj();
-  const tower=MODE.mapNames[eco.id];
-  cfg.variant=Math.floor(Math.random()*3);
-  $('#intro-kicker').textContent='RONDA '+(m.round+1)+' · '+eco.name+(tax?' · ⛈ TORMENTA −'+tax+'♥':'');
-  $('#intro-desc').textContent='girando el modo...';
-  $('#intro-go').textContent='?';
-  intro.classList.add('show');
-  SFX.phase();
+  // SELECCIÓN DE MAPA: te sale el mapa y la cámara se ACERCA a la arena (zoom) mientras corre el 3·2·1
+  const intro=$('#phase-intro'), pv=$('#map-preview');
+  $('#intro-kicker').textContent='RONDA '+(m.round+1)+' · '+parts.length+' EN PIE';
+  $('#intro-name').textContent=tower;
+  $('#intro-desc').textContent=eco.name+' · el primero en caer pierde 1 ♥';
+  $('#hud-phase').textContent='RONDA '+(m.round+1)+' · '+eco.name;
+  $('#game-controls').textContent=MODE.controls;
+  if(pv){ pv.style.display=''; pv.classList.remove('zoom'); drawMapPreview(pv, eco.id, variant, parts); }
+  intro.classList.add('show'); SFX.phase();
   if(window.MUSIC) MUSIC.battle(m.round);
-
-  // ruleta: cicla los 3 modos y aterriza en el de esta ronda
-  let spins=10+Math.floor(Math.random()*3), i=Math.floor(Math.random()*MODE_ROT.length);
-  const cv=$('#game-canvas');
-  const iv=setInterval(()=>{
-    $('#intro-name').textContent=MODE_ROT[i%MODE_ROT.length].name+' · '+eco.name; i++;
-    SFX.count();
-    spins--;
-    if(spins<=0){
-      clearInterval(iv);
-      $('#intro-name').textContent=rot.name+' · '+tower;
-      $('#intro-desc').textContent=MODE.desc;
-      $('#hud-phase').textContent='RONDA '+(m.round+1)+' · '+rot.name+' · '+eco.name+(rain?' ⛈':'');
-      $('#game-controls').textContent=MODE.controls;
-      SFX.go();
-      let n=3;
-      $('#intro-go').textContent=n;
-      const iv2=setInterval(()=>{
-        n--;
-        if(n>0){ $('#intro-go').textContent=n; SFX.count(); }
-        else{
-          clearInterval(iv2);
-          $('#intro-go').textContent='GO!'; SFX.go();
-          setTimeout(()=>{
-            intro.classList.remove('show');
-            MODE.start(cv, parts, cfg, onRoundEnd, eco.id);
-          },350);
-        }
-      },800);
+  if(pv){ void pv.offsetWidth; pv.classList.add('zoom'); }  // arranca el acercamiento
+  let n=3; $('#intro-go').textContent=n; SFX.count();
+  const iv2=setInterval(()=>{ n--;
+    if(n>0){ $('#intro-go').textContent=n; SFX.count(); }
+    else{
+      clearInterval(iv2);
+      $('#intro-go').textContent='GO!'; SFX.go();
+      setTimeout(()=>{ intro.classList.remove('show');
+        MODE.start($('#game-canvas'), parts, cfg, onRoundEnd, eco.id);
+      },350);
     }
-  },110);
+  },800);
 }
 
 function onRoundEnd(){
@@ -198,7 +198,7 @@ function onRoundEnd(){
 
 function showScoreboard(final){
   const m=current;
-  const nextEco = final?null:ECOS[(m.round+1)%ECOS.length];
+  const nextEco = final?null:ECOS[((m.ecoStart||0)+m.round+1)%ECOS.length];
   const alive=aliveList();
   let head = final?'FINAL':nextEco.name;
   if(!final&&alive.length===2) head=nextEco.name+' · ¡DUELO 1v1!';
@@ -244,6 +244,9 @@ function finishMatch(){
   const isParty = !!m.party;
   const xp = DATA.ECON.XP_REWARD[place] || 12;
   if(win) st.wins++;
+  const dcups=win?30:-20;                                  // COPAS: ganas +30, pierdes −20 (Clash Royale)
+  const b4=DATA.playerRankCups().idx; DATA.gainCups(dcups); const af=DATA.playerRankCups().idx;
+  const dgold=win?60:20; DATA.gainGold(dgold);             // ORO para el mercado
   const lu = DATA.gainXP(xp);            // XP → nivel (regala cofres)
   DATA.save(); UI.updateHearts();
 
@@ -254,7 +257,10 @@ function finishMatch(){
   $('#results-hearts').textContent = win ? '¡sobreviviste!' : (place+'º de '+m.players.length);
   $('#results-cash').className=''; $('#results-cash').style.color = win?'#57d977':'#b7b1a4';
   $('#results-cash').textContent = win ? 'quedaste como el último en pie' : 'caíste — inténtalo de nuevo';
-  $('#results-xp').textContent = '+'+xp+' XP · Nivel '+DATA.level()+(lu.up?('  ★ ¡NIVEL '+lu.level+'! + COFRE'):'');
+  $('#results-xp').innerHTML = '<b style="color:'+(dcups>=0?'#ffd34d':'#ff8a7a')+'">'+(dcups>=0?'+':'')+dcups+' 🏆 · '+(st.cups|0)+' total'
+    +(af>b4?'  ↑ ¡SUBISTE DE ARENA!':(af<b4?'  ↓ bajaste de arena':''))+'</b>'
+    +'<br><span style="color:#ffcf5a">+'+dgold+' 🪙 oro</span>'
+    +'<br><span style="opacity:.7">+'+xp+' XP · Nivel '+DATA.level()+(lu.up?('  ★ ¡NIVEL '+lu.level+'! + COFRE'):'')+'</span>';
   if(win) SFX.win(); else SFX.lose();
   const cvs=$('#results-sprite'), c=cvs.getContext('2d');
   c.clearRect(0,0,cvs.width,cvs.height);
@@ -376,6 +382,7 @@ function launchArena(){
   $('#hud-pot').textContent=mode.icon; const lbl=document.querySelector('.hud-pot-label'); if(lbl)lbl.textContent=mode.id.toUpperCase();
   KIT.updateHudPlayers(m.players, p=>!p.koRound);
   const intro=$('#phase-intro'), MODE=window.TOWERFALL, world=(MODE.mapNames[eco.id]||eco.name);
+  const pv=$('#map-preview'); if(pv) pv.style.display='none';   // el preview del mapa es del VERSUS
   $('#intro-kicker').textContent=mode.icon+'  '+mode.name;
   $('#intro-name').textContent=mode.name+' · '+world;
   $('#intro-desc').textContent=mode.blurb;
@@ -426,7 +433,7 @@ function showModeResult(r){
 }
 
 function init(){
-  $('#btn-ranked').addEventListener('click',()=>{ SFX.click(); openModes(); });   // JUGAR → ELIGE MODO (5 modos TowerFall)
+  $('#btn-ranked').addEventListener('click',()=>{ SFX.click(); startRanked(); }); // JUGAR → VERSUS estilo TowerFall (rondas + eliminación)
   $('#btn-modes-close').addEventListener('click',()=>{ SFX.click(); $('#modal-modes').classList.remove('show'); });
   $('#modal-modes').addEventListener('click',(e)=>{ if(e.target.id==='modal-modes') $('#modal-modes').classList.remove('show'); });
   $('#btn-results-lobby').addEventListener('click',()=>{ SFX.click(); $('#results').classList.remove('show'); UI.enterLobby(); });
