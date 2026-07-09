@@ -397,6 +397,40 @@ body{
 .lf-row b{color:#e7e2d6;font-weight:700}
 @keyframes lfin{from{opacity:0;transform:translateY(4px)}}
 
+/* ===== VICTORIA / DERROTA estilo Clash Royale ===== */
+.results{background:#050505}
+.results.win{background:radial-gradient(900px 600px at 50% 30%,#2a4a86,#0d1830 70%)}
+.results.lose{background:radial-gradient(900px 600px at 50% 30%,#2a1418,#0a0508 70%)}
+.res-rays{position:absolute;left:50%;top:26%;width:1200px;height:1200px;transform:translate(-50%,-50%);
+  pointer-events:none;opacity:0;border-radius:50%;
+  background:repeating-conic-gradient(from 0deg,rgba(255,211,77,.16) 0deg 11deg,transparent 11deg 30deg);
+  mask-image:radial-gradient(circle,#000 0%,transparent 62%);-webkit-mask-image:radial-gradient(circle,#000 0%,transparent 62%)}
+.results.win .res-rays{opacity:1;animation:rays-spin 14s linear infinite}
+@keyframes rays-spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+.res-crowns{display:none;gap:14px;align-items:flex-end;margin-top:16px;position:relative;z-index:2}
+.results.win .res-crowns{display:flex}
+.res-crowns .crown{width:58px;height:44px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.45));opacity:0}
+.res-crowns .crown.c2{width:74px;height:56px;margin-bottom:6px}
+.results.win .crown{animation:crown-drop .65s cubic-bezier(.25,1.6,.4,1) forwards}
+.results.win .crown.c1{animation-delay:.15s}
+.results.win .crown.c2{animation-delay:.4s}
+.results.win .crown.c3{animation-delay:.65s}
+@keyframes crown-drop{0%{opacity:0;transform:translateY(-120px) scale(.4) rotate(-14deg)}70%{opacity:1;transform:translateY(8px) scale(1.12) rotate(3deg)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}}
+.results .results-title{position:relative;z-index:2}
+.results.win .results-title{color:#ffd34d;font-size:clamp(44px,9vw,74px);
+  text-shadow:0 3px 0 #7c4e00, 0 6px 0 rgba(0,0,0,.35), 0 0 44px rgba(255,211,77,.45);
+  animation:title-pop .5s cubic-bezier(.25,1.5,.4,1) .3s backwards}
+.results.lose .results-title{color:#9fb0c8;font-size:clamp(38px,8vw,62px);
+  text-shadow:0 3px 0 #1a2334, 0 0 30px rgba(80,110,160,.3);animation:title-sink .6s ease .15s backwards}
+@keyframes title-pop{0%{opacity:0;transform:scale(.3)}100%{opacity:1;transform:scale(1)}}
+@keyframes title-sink{0%{opacity:0;transform:translateY(-26px)}100%{opacity:1;transform:none}}
+.results.lose #results-sprite{filter:grayscale(.85) brightness(.75)}
+.results.win #results-sprite{animation:winner-bounce 1.6s ease-in-out infinite}
+@keyframes winner-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.results.lose .res-crowns{display:none}
+.results #btn-results-lobby{position:relative;z-index:2;margin-top:14px}
+.results.lose #btn-results-lobby{background:linear-gradient(180deg,#6ec4ff,#2e8fe8);color:#fff;box-shadow:0 0 0 1px #000,4px 4px 0 #0e4a94}
+
 /* ===== CANDADOS de progreso ===== */
 .cr-tabs button.locked{opacity:.5}
 .cr-tabs button.locked .ct-lock{font-size:10px;position:absolute;transform:translate(26px,-22px)}

@@ -295,9 +295,11 @@ function finishMatch(){
   const lu = DATA.gainXP(xp);            // XP → nivel (regala cofres)
   DATA.save(); UI.updateHearts();
 
-  // pantalla de resultado
-  $('#results-title').textContent = win ? '¡GANASTE!' : (place+'º LUGAR');
-  $('#results-place').textContent = isParty ? (win?'PARTIDA CON AMIGOS':'CASUAL') : (win?'ÚLTIMO EN PIE':'ELIMINADO');
+  // pantalla de resultado estilo CLASH (coronas + rayos al ganar / derrota oscura)
+  $('#results').classList.remove('win','lose');
+  $('#results').classList.add(win?'win':'lose');
+  $('#results-title').textContent = win ? '¡VICTORIA!' : '¡DERROTA!';
+  $('#results-place').textContent = isParty ? (win?'PARTIDA CON AMIGOS':'CASUAL') : (win?'ÚLTIMO EN PIE':place+'º LUGAR · ELIMINADO');
   $('#results-name').textContent = winner.name+'  ·  '+winner.animal.name;
   $('#results-hearts').textContent = win ? '¡sobreviviste!' : (place+'º de '+m.players.length);
   $('#results-cash').className=''; $('#results-cash').style.color = win?'#57d977':'#b7b1a4';
@@ -458,7 +460,9 @@ function showModeResult(r){
   const afterIdx=DATA.playerRankCups().idx;
   const dgold = win?60:20; DATA.gainGold(dgold);   // ORO: para comprar monitos en el mercado
   const xp=win?60:25, lu=DATA.gainXP(xp); DATA.save(); UI.updateHearts();
-  $('#results-title').textContent = win?'¡GANASTE!':(mode.id==='trials'?'¡TIEMPO!':'FIN');
+  $('#results').classList.remove('win','lose');
+  $('#results').classList.add(win?'win':'lose');
+  $('#results-title').textContent = win?'¡VICTORIA!':(mode.id==='trials'?'¡TIEMPO!':'¡DERROTA!');
   $('#results-place').textContent = mode.icon+' '+mode.name;
   $('#results-name').textContent = me?(me.name+' · '+me.animal.name):'—';
   let s1='', s2='';

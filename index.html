@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=129">
+<link rel="stylesheet" href="css/style.css?v=130">
 </head>
 <body>
 
@@ -280,20 +280,24 @@
       <div class="sb-rows" id="sb-rows"></div>
     </div>
     <div class="results" id="results">
+      <div class="res-rays"></div>
       <canvas class="confetti" id="confetti-canvas"></canvas>
-      <div class="sb-kicker">BATTLE ROYALE</div>
-      <div class="sb-brand">HEARTS</div>
-      <div class="sb-sub" style="margin-top:34px">RANKED MATCH</div>
-      <div class="results-title" id="results-title">WINNER</div>
+      <!-- CORONAS estilo Clash (caen y rebotan al ganar) -->
+      <div class="res-crowns" id="res-crowns">
+        <svg class="crown c1" viewBox="0 0 64 48"><path d="M6 40 L4 14 L18 26 L32 6 L46 26 L60 14 L58 40 Z" fill="#ffd34d" stroke="#7c4e00" stroke-width="3" stroke-linejoin="round"/><rect x="6" y="38" width="52" height="7" rx="2" fill="#f5a900" stroke="#7c4e00" stroke-width="2.5"/><circle cx="32" cy="24" r="4" fill="#ff5a4d" stroke="#7c4e00" stroke-width="2"/></svg>
+        <svg class="crown c2" viewBox="0 0 64 48"><path d="M6 40 L4 14 L18 26 L32 6 L46 26 L60 14 L58 40 Z" fill="#ffd34d" stroke="#7c4e00" stroke-width="3" stroke-linejoin="round"/><rect x="6" y="38" width="52" height="7" rx="2" fill="#f5a900" stroke="#7c4e00" stroke-width="2.5"/><circle cx="32" cy="24" r="4" fill="#4dd2ff" stroke="#7c4e00" stroke-width="2"/></svg>
+        <svg class="crown c3" viewBox="0 0 64 48"><path d="M6 40 L4 14 L18 26 L32 6 L46 26 L60 14 L58 40 Z" fill="#ffd34d" stroke="#7c4e00" stroke-width="3" stroke-linejoin="round"/><rect x="6" y="38" width="52" height="7" rx="2" fill="#f5a900" stroke="#7c4e00" stroke-width="2.5"/><circle cx="32" cy="24" r="4" fill="#ff5a4d" stroke="#7c4e00" stroke-width="2"/></svg>
+      </div>
+      <div class="results-title" id="results-title">¡VICTORIA!</div>
       <div class="results-meta">
         <span id="results-name">—</span>
-        <span class="results-hearts" id="results-hearts">+12 ♥</span>
+        <span class="results-hearts" id="results-hearts"></span>
       </div>
       <div class="results-place" id="results-place"></div>
       <canvas id="results-sprite" width="180" height="170"></canvas>
       <div class="results-cash" id="results-cash"></div>
       <div class="results-xp" id="results-xp"></div>
-      <button class="btn-flat" id="btn-results-lobby">VOLVER AL LOBBY</button>
+      <button class="btn-flat btn-ranked" id="btn-results-lobby">¡SEGUIR!</button>
     </div>
   </div>
   <div class="game-controls" id="game-controls"></div>
@@ -451,20 +455,20 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/audio.js?v=129"></script>
-<script src="js/sprites.js?v=129"></script>
-<script src="js/mapart.js?v=129"></script>
-<script src="js/intro.js?v=129"></script>
-<script src="js/tutorial.js?v=129"></script>
-<script src="js/themes.js?v=129"></script>
-<script src="js/data.js?v=129"></script>
-<script src="js/weapons.js?v=129"></script>
-<script src="js/ui.js?v=129"></script>
-<script src="js/bomberman.js?v=129"></script>
-<script src="js/towerfall.js?v=129"></script>
-<script src="js/showdown.js?v=129"></script>
-<script src="js/bros.js?v=129"></script>
-<script src="js/match.js?v=129"></script>
-<script src="js/main.js?v=129"></script>
+<script src="js/audio.js?v=130"></script>
+<script src="js/sprites.js?v=130"></script>
+<script src="js/mapart.js?v=130"></script>
+<script src="js/intro.js?v=130"></script>
+<script src="js/tutorial.js?v=130"></script>
+<script src="js/themes.js?v=130"></script>
+<script src="js/data.js?v=130"></script>
+<script src="js/weapons.js?v=130"></script>
+<script src="js/ui.js?v=130"></script>
+<script src="js/bomberman.js?v=130"></script>
+<script src="js/towerfall.js?v=130"></script>
+<script src="js/showdown.js?v=130"></script>
+<script src="js/bros.js?v=130"></script>
+<script src="js/match.js?v=130"></script>
+<script src="js/main.js?v=130"></script>
 </body>
 </html>
