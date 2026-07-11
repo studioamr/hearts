@@ -129,7 +129,7 @@ function start(canvas, players, cfg, onEnd, eco){
     return best;
   }
   function botThink(e){
-    e.think=0.13+Math.random()*0.1;
+    e.think=0.08+Math.random()*0.06;   // reacciones más rápidas
     const offL=e.x<layout.stageL, offR=e.x>layout.stageR;
     if((offL||offR)&&e.y>PLATS[0].y-60){
       e.vxDes=(offL?1:-1)*e.spd;
@@ -146,13 +146,13 @@ function start(canvas, players, cfg, onEnd, eco){
     else if(box&&Math.random()<0.3) tx=box.x;
     const dx=tx-e.x;
     e.face=dx<0?-1:1;
-    e.vxDes=Math.abs(dx)>36?Math.sign(dx)*e.spd*(0.75+Math.random()*0.25):0;
+    e.vxDes=Math.abs(dx)>36?Math.sign(dx)*e.spd*(0.9+Math.random()*0.1):0;   // persigue más decidido
     if(foe){
       const dy=(foe.y-foe.h/2)-(e.y-e.h/2);
-      if(dy<-50&&e.onG&&Math.random()<0.5){ e.vy=JUMP; }
-      if(dy<-50&&!e.onG&&e.vy>60&&e.jumps>0&&Math.random()<0.6){ e.jumps--; e.vy=JUMP*0.92; }
-      if(Math.abs(foe.x-e.x)<54&&Math.abs(dy)<44&&Math.random()<0.65) attack(e);
-      if(foe.atkT>0&&Math.abs(foe.x-e.x)<72&&e.onG&&Math.random()<0.45) e.crouchT=0.3;
+      if(dy<-50&&e.onG&&Math.random()<0.72){ e.vy=JUMP; }
+      if(dy<-50&&!e.onG&&e.vy>60&&e.jumps>0&&Math.random()<0.78){ e.jumps--; e.vy=JUMP*0.92; }
+      if(Math.abs(foe.x-e.x)<58&&Math.abs(dy)<46&&Math.random()<0.9) attack(e);        // ataca mucho más
+      if(foe.atkT>0&&Math.abs(foe.x-e.x)<74&&e.onG&&Math.random()<0.6) e.crouchT=0.3;   // bloquea (crouch) mejor
     }
     if(Math.random()<0.05&&e.onG) e.vy=JUMP;
   }

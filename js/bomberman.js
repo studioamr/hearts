@@ -178,7 +178,7 @@ function start(canvas, players, cfg, onEnd, eco){
     const nearCrate=[[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{
       const x=e.gx+dx,y=e.gy+dy; return x>=0&&x<COLS&&y>=0&&y<ROWS&&map[y][x]===2;
     });
-    if(e.p.hp>0 && e.bombsOut<e.bombN && (nearEnemy||nearCrate) && Math.random()<0.75){
+    if(e.p.hp>0 && e.bombsOut<e.bombN && (nearEnemy||nearCrate) && Math.random()<0.92){
       const simDanger=new Set(danger);
       simDanger.add(e.gx+','+e.gy);
       [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{
@@ -246,7 +246,7 @@ function start(canvas, players, cfg, onEnd, eco){
         if(e.out||e.dead||!e.p.bot) return;
         e.think-=dt;
         if(!e.moving&&e.think<=0){
-          e.think=0.12+Math.random()*0.1;
+          e.think=0.07+Math.random()*0.06;
           const act=botThink(e,danger);
           if(act.bomb) placeBomb(e);
           if(act.move&&walkable(e.gx+act.move[0],e.gy+act.move[1],e)) startMove(e,act.move);

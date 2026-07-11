@@ -373,10 +373,10 @@ function start(canvas, players, cfg, onEnd, eco){
 
   function botThink(e){
     const foes=living().filter(o=>o!==e && o.phaseT<=0 && (!TEAMS || o.team!==e.team));   // FANTASMA no; ni tu equipo
-    // ULTIMATE del bot: si hay rival cerca (o está en peligro), suelta su R
+    // ULTIMATE del bot: mucho más decidido (usa su R cuando hay rival cerca o está en peligro)
     if(ultReady(e)){
       const near=foes.reduce((m,o)=>Math.min(m,Math.abs(o.x-e.x)),1e9);
-      if((near<210||e.p.hp<=1)&&Math.random()<0.05) useUlt(e);
+      if((near<290||e.p.hp<=1)&&Math.random()<0.28) useUlt(e);
     }
     // corazón cercano: prioridad de botín
     let heartT=null,hd=260;
@@ -390,11 +390,11 @@ function start(canvas, players, cfg, onEnd, eco){
     const tg=foes.length?foes.reduce((a,b)=>Math.abs(a.x-e.x)<Math.abs(b.x-e.x)?a:b):null;
     const inc=arrows.find(a=>a.owner!==e&&Math.hypot(a.x-e.x,a.y-(e.y-e.h/2))<130&&Math.sign(a.vx)===Math.sign(e.x-a.x));
     if(inc){
-      if(e.dodgeCd<=0 && Math.random()<0.5){        // DODGE del bot (a veces atrapa la flecha)
+      if(e.dodgeCd<=0 && Math.random()<0.85){        // DODGE casi siempre (y a menudo ATRAPA la flecha)
         const tx=Math.sign(inc.x-e.x)||e.face;
-        if(Math.random()<0.5) startDodge(e, tx, Math.random()<0.4?-1:0);   // hacia la flecha = atrapar
+        if(Math.random()<0.6) startDodge(e, tx, Math.random()<0.4?-1:0);   // hacia la flecha = atrapar
         else startDodge(e, (Math.random()<0.5?-tx:tx), -1);                // esquiva vertical
-      } else if(e.onG){ const r=Math.random(); if(r<0.45) e.wantJump=true; else if(r<0.8) e.crouchT=0.35; }
+      } else if(e.onG){ const r=Math.random(); if(r<0.55) e.wantJump=true; else e.crouchT=0.35; }
     }
     const hunter=((GMID==='surv'||GMID==='camp')&&e.enemy);  // DEPREDADOR: caza al jugador SIN miedo, no huye ni saquea
     // 🚩 CTF: prioridad de bandera — llévala a casa / persigue al ladrón / regresa la tuya / ve por la enemiga
@@ -422,17 +422,28 @@ function start(canvas, players, cfg, onEnd, eco){
     const target = modeGoal || ctfGoal || (goHeart ? {x:heartT.x,y:heartT.y-10,h:20} : tg);
     if(!target){ e.mvx=0; return; }
     const dx=target.x-e.x, dy=(target.y-(target.h||42)/2)-(e.y-e.h/2);
-    if(Math.abs(dx)>40) e.mvx=Math.sign(dx)*espd(e)*((hunter||modeHunter)?1:0.85);
-    else if(Math.random()<0.35) e.mvx=(Math.random()<0.5?-1:1)*espd(e)*0.6;
-    else e.mvx=0;
-    if(dy<-60&&e.onG&&Math.random()<0.6) e.wantJump=true;
-    if(dy<-60&&!e.onG&&e.vy>80&&e.jumps>0&&Math.random()<0.5) e.wantJump=true;
-    if(Math.random()<0.08&&e.onG) e.wantJump=true;
+    const foeTgt=(target===tg);   // ¿el objetivo es un RIVAL? (para mantener rango de arquero)
+    const fdist=Math.abs(dx);
+    if(foeTgt && e.weap.kind==='bow' && e.ammo>0 && fdist<110){
+      e.mvx=-Math.sign(dx)*espd(e)*0.85;                 // demasiado cerca: retrocede para tener tiro
+    } else if(fdist>40){
+      e.mvx=Math.sign(dx)*espd(e)*((hunter||modeHunter)?1:0.96);   // persigue MÁS rápido y decidido
+    } else if(Math.random()<0.45){ e.mvx=(Math.random()<0.5?-1:1)*espd(e)*0.7;   // strafe
+    } else e.mvx=0;
+    if(dy<-55&&e.onG&&Math.random()<0.8) e.wantJump=true;                        // salta a plataformas más arriba
+    if(dy<-55&&!e.onG&&e.vy>60&&e.jumps>0&&Math.random()<0.7) e.wantJump=true;    // doble salto para alcanzar
+    if(Math.random()<0.06&&e.onG) e.wantJump=true;
     e.face=dx<0?-1:1;
-    if(tg&&e.ammo>0&&e.cd<=0&&Math.random()<0.3){
-      const fdx=tg.x-e.x, fdy=(tg.y-tg.h/2)-(e.y-e.h/2);
-      if(Math.abs(fdy)<38) e.wantShootDir=[Math.sign(fdx)||1,(Math.random()-.5)*0.4];
-      else if(Math.abs(fdx)<38) e.wantShootDir=[(Math.random()-.5)*0.4,Math.sign(fdy)||1];
+    // 🎯 PUNTERÍA CON PREDICCIÓN: adelanta al objetivo según su velocidad + compensa la leve gravedad
+    if(tg&&e.ammo>0&&e.cd<=0){
+      const ex=e.x, ey=e.y-e.h*0.55, tgx=tg.x, tgy=tg.y-(tg.h||42)*0.5;
+      const dist=Math.hypot(tgx-ex,tgy-ey), asp=(e.weap.arrowSpeed||720);
+      const tt=Math.min(0.55, dist/asp);
+      let adx=(tgx+(tg.vx||0)*tt)-ex, ady=(tgy+(tg.vy||0)*tt*0.6)-ey;
+      if(Math.abs(adx)>Math.abs(ady)) ady-=dist*0.16;               // apunta un pelo arriba (gravedad de la flecha)
+      adx+=(Math.random()-.5)*dist*0.05; ady+=(Math.random()-.5)*dist*0.05;   // pizca de error (no es aimbot)
+      const acc=(dist<560)?0.9:0.5;                                 // dispara muy seguido de cerca
+      if(Math.random()<acc){ e.wantShootDir=[adx,ady]; e.face=adx<0?-1:1; }
     }
   }
 
@@ -493,7 +504,7 @@ function start(canvas, players, cfg, onEnd, eco){
       ents.forEach(e=>{
         if(e.dead||!e.p.bot) return;
         e.think-=dt;
-        if(e.think<=0){ e.think=0.18+Math.random()*0.12; botThink(e); }
+        if(e.think<=0){ e.think=0.09+Math.random()*0.08; botThink(e); }   // reacciones más rápidas
         if(e.wantJump){ e.wantJump=false;
           if(e.onG||e.jumps>0){ if(!e.onG)e.jumps--; e.vy=jumpV(e); } }
         if(e.weap.kind==='sword'){
