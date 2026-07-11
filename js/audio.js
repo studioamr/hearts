@@ -62,15 +62,30 @@ const VOL=0.30;
 const N=m=>440*Math.pow(2,(m-69)/12);            // MIDI → Hz
 const BPM=76, BEAT=60/BPM, STEP=BEAT/2;          // corcheas
 let master=null, mScheduler=null, mMode='lobby', nextT=0, step=0, mIntensity=1;
-// progresión Re menor: Dm – Bb – F – A(V)  (raíz, quinta, acorde, notas del coro)
-const PROG=[
-  {root:N(38),fifth:N(45),chord:[N(50),N(53),N(57)],top:[N(57),N(62)]},   // Dm
-  {root:N(34),fifth:N(41),chord:[N(46),N(50),N(53)],top:[N(53),N(58)]},   // Bb
-  {root:N(41),fifth:N(48),chord:[N(53),N(57),N(60)],top:[N(60),N(65)]},   // F
-  {root:N(33),fifth:N(40),chord:[N(45),N(49),N(52)],top:[N(52),N(57)]},   // A (tensión → vuelve a Dm)
-];
-// melodía doliente (paso de corchea sobre 32 pasos) — Re menor
-const MELODY=[{s:0,m:69,d:8},{s:8,m:65,d:4},{s:12,m:67,d:4},{s:16,m:69,d:5},{s:21,m:72,d:3},{s:24,m:69,d:4},{s:28,m:68,d:4}];
+// progresión LARGA en Re menor (16 compases: A A' B A'') — evita la repetición corta.
+// cada entrada: raíz, quinta, acorde, notas del coro
+const CH={
+  Dm:{root:N(38),fifth:N(45),chord:[N(50),N(53),N(57)],top:[N(57),N(62)]},
+  Bb:{root:N(34),fifth:N(41),chord:[N(46),N(50),N(53)],top:[N(53),N(58)]},
+  F :{root:N(41),fifth:N(48),chord:[N(53),N(57),N(60)],top:[N(60),N(65)]},
+  A :{root:N(33),fifth:N(40),chord:[N(45),N(49),N(52)],top:[N(52),N(57)]},   // V (tensión)
+  Gm:{root:N(43),fifth:N(50),chord:[N(55),N(58),N(62)],top:[N(62),N(67)]},   // iv
+  C :{root:N(36),fifth:N(43),chord:[N(48),N(52),N(55)],top:[N(55),N(60)]},   // VII
+  Am:{root:N(45),fifth:N(52),chord:[N(57),N(60),N(64)],top:[N(64),N(69)]},   // v
+};
+const PROG=[ CH.Dm,CH.Bb,CH.F,CH.A,  CH.Dm,CH.Gm,CH.C,CH.A,   // A · A'
+             CH.Gm,CH.C,CH.F,CH.Dm,   CH.Bb,CH.Gm,CH.A,CH.A ]; // B · A'' (16 compases)
+// melodía doliente sobre 128 pasos (16 compases × 8 corcheas) — dos secciones que respiran
+const MELODY=[
+  // A (compases 1-4)
+  {s:0,m:69,d:8},{s:8,m:65,d:4},{s:12,m:67,d:4},{s:16,m:69,d:5},{s:21,m:72,d:3},{s:24,m:69,d:4},{s:28,m:68,d:4},
+  // A' (5-8) — variación un poco más alta
+  {s:32,m:74,d:8},{s:40,m:70,d:4},{s:44,m:69,d:4},{s:48,m:67,d:4},{s:52,m:65,d:4},{s:56,m:64,d:4},{s:60,m:65,d:4},
+  // B (9-12) — puente que sube
+  {s:64,m:67,d:4},{s:68,m:70,d:4},{s:72,m:72,d:6},{s:78,m:70,d:2},{s:80,m:69,d:4},{s:84,m:72,d:4},{s:88,m:74,d:8},
+  // A'' (13-16) — resolución
+  {s:96,m:70,d:4},{s:100,m:69,d:4},{s:104,m:67,d:4},{s:108,m:65,d:4},{s:112,m:69,d:6},{s:118,m:68,d:2},{s:120,m:69,d:8} ];
+const LOOP=PROG.length*8;   // pasos totales del ciclo (128)
 
 function setupBus(a){
   if(master) return;
@@ -126,7 +141,7 @@ function lead(a,f,t,dur,g){
 }
 function schedule(a){
   while(nextT < a.currentTime+0.22){
-    const s=step%32, bar=(s>>3)&3, e=s&7, P=PROG[bar];
+    const s=step%LOOP, bar=(s>>3), e=s&7, P=PROG[bar];
     if(e===0){ pad(a,P.chord,nextT,BEAT*4,0.5*mIntensity);
       P.top.forEach((f,i)=>choir(a,f,nextT,BEAT*4,(mMode==='lobby'?0.10:0.085)*(1-i*0.25)));
       timp(a,P.root,nextT,0.55*mIntensity); }

@@ -384,10 +384,10 @@ async function runRound(){
       setTimeout(()=>{ intro.classList.remove('show');
         if(mode.id==='bombas') BOMBERMAN.start(classic832(), parts, {duration:75, minAlive:minA}, done, ecoId);
         else if(mode.id==='smash') BROS.start(classic832(), parts, {duration:90, minAlive:minA, oneLife:true}, done, ecoId);   // ranked = 1 vida por ronda
-        else if(mode.id==='hunt') TOWERFALL.start($('#game-canvas'), parts, {duration:600, gameMode:DATA.byMode['hunt'], variant}, done, ecoId);   // PRIMERO A 10: sin límite de tiempo, respawns infinitos
+        else if(mode.id==='hunt') TOWERFALL.start($('#game-canvas'), parts, {duration:180, gameMode:DATA.byMode['hunt'], variant}, done, ecoId);   // PRIMERO A 10: sin límite de tiempo, respawns infinitos
         else if(mode.id==='ctf') TOWERFALL.start($('#game-canvas'), parts, {duration:90, gameMode:{id:'ctf', name:'BANDERA', teams:true, respawn:1.5, goal:2}, variant}, done, ecoId);
-        else if(mode.id==='corazones') TOWERFALL.start($('#game-canvas'), parts, {duration:150, gameMode:{id:'corazones', name:'CORAZONES', respawn:1.4, goal:30}, variant}, done, ecoId);
-        else if(mode.id==='colina') TOWERFALL.start($('#game-canvas'), parts, {duration:150, gameMode:{id:'colina', name:'REY DE LA COLINA', respawn:1.4, goal:25}, variant}, done, ecoId);
+        else if(mode.id==='corazones') TOWERFALL.start($('#game-canvas'), parts, {duration:120, gameMode:{id:'corazones', name:'CORAZONES', respawn:1.4, goal:30}, variant}, done, ecoId);
+        else if(mode.id==='colina') TOWERFALL.start($('#game-canvas'), parts, {duration:100, gameMode:{id:'colina', name:'REY DE LA COLINA', respawn:1.4, goal:25}, variant}, done, ecoId);
         else if(mode.id==='infeccion') TOWERFALL.start($('#game-canvas'), parts, {duration:70, gameMode:{id:'infeccion', name:'INFECCIÓN', respawn:1.2}, variant}, done, ecoId);
         else TOWERFALL.start($('#game-canvas'), parts, {duration:60, minAlive:minA, rain:0, variant}, done, ecoId);
       },350);

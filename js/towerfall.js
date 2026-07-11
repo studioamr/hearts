@@ -629,11 +629,12 @@ function start(canvas, players, cfg, onEnd, eco){
       if(GMID==='corazones'){ heartSpawnT-=dt;
         if(heartSpawnT<=0 && hearts.length < Math.max(7, ents.length*3)){ heartSpawnT=0.45+Math.random()*0.4;
           hearts.push({x:60+Math.random()*(W-120), y:-20, vx:(Math.random()-.5)*60, vy:60+Math.random()*70, onG:false, t:Math.random()*6}); } }
-      // 👑 REY DE LA COLINA: la zona da tiempo si estás SOLO en ella; se muda cada ~12s
+      // 👑 REY DE LA COLINA: TODOS los que estén en la zona suman tiempo (así siempre avanza,
+      //    no se traba si está disputada); se muda cada ~12s
       if(GMID==='colina' && zone){ zoneMoveT-=dt; if(zoneMoveT<=0) placeZone();
         const inZ=living().filter(e=>Math.hypot(e.x-zone.x,(e.y-e.h*0.5)-zone.y)<zone.r);
-        if(inZ.length===1){ const e=inZ[0]; e.zoneT=(e.zoneT||0)+dt; e.p.score=Math.round(e.zoneT);
-          if(Math.random()<dt*6) parts.spawn(zone.x+(Math.random()-.5)*zone.r,zone.y+(Math.random()-.5)*40,'#4dd2a0',1,60); } }
+        inZ.forEach(e=>{ e.zoneT=(e.zoneT||0)+dt; e.p.score=Math.round(e.zoneT); });
+        if(inZ.length && Math.random()<dt*8) parts.spawn(zone.x+(Math.random()-.5)*zone.r,zone.y+(Math.random()-.5)*40,'#4dd2a0',1,60); }
       // 🧟 INFECCIÓN: puntúa el tiempo sobrevivido (humano) — el infectado se congela en su instante
       if(GMID==='infeccion'){ ents.forEach(e=>{ e.p.score=(e.infected&&!e.patientZero)?e.infAt:time; e.p.patientZero=!!e.patientZero; e.p.infected=!!e.infected; }); }
       // cuerpos: vuelan con la inercia de la flecha, aterrizan y se acuestan
@@ -744,7 +745,7 @@ function start(canvas, players, cfg, onEnd, eco){
       }
       else if(GMID==='trials'){ if((ents[0]&&(ents[0].p.score||0)>=(GM.goal||20))) endNow=true; }
       else if(GMID==='ctf'){ if(caps[0]>=(GM.goal||2)||caps[1]>=(GM.goal||2)) endNow=true; }
-      if(time>DUR && GMID!=='hunt') endNow=true;   // HUNT = carrera a 10: NO termina por tiempo, solo al llegar a la meta
+      if(time>DUR) endNow=true;   // tope de tiempo (respaldo anti-cuelgue en TODOS los modos, incl. hunt)
       if(endNow){ over=true; endTimer=1.1; }
     } else {
       endTimer-=dt;
