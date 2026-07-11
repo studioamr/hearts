@@ -285,7 +285,7 @@ const RANKED_MODES=[
   {id:'hunt',    icon:'💀', name:'CALAVERAS', color:'#9d4fd8', desc:'PRIMERO A 10 CALAVERAS — respawns infinitos, sin tiempo; el que junte MENOS pierde 1 ♥'},
   {id:'ctf',     icon:'🚩', name:'BANDERA',   color:'#3f8fdd', desc:'por EQUIPOS — roba la bandera enemiga y llévala a tu base; el equipo que pierde: −1 ♥ cada uno'},
   {id:'corazones', icon:'❤️', name:'CORAZONES', color:'#e8467a', desc:'JUNTA 30 CORAZONES al mismo tiempo — llueven del cielo, sueltas la mitad al morir; el que junte MENOS pierde 1 ♥'},
-  {id:'colina',    icon:'👑', name:'REY DE LA COLINA', color:'#3fd0a0', desc:'DOMINA LA ZONA — solo suma si estás solo en ella; primera a 25s; el que menos aguante pierde 1 ♥'},
+  {id:'colina',    icon:'👑', name:'REY DE LA COLINA', color:'#3fd0a0', desc:'DOMINA LA ZONA — suma tiempo mientras estés dentro; primera a 25s; el que menos aguante pierde 1 ♥'},
   {id:'infeccion', icon:'🧟', name:'INFECCIÓN', color:'#7ac043', desc:'SOBREVIVE a los infectados — te contagian al tocarte; el primer humano en caer pierde 1 ♥'},
 ];
 const TEAM_COLS=[['#4d9fff','#7fc4ff'],['#ff5a4d','#ff8a3c']];   // CTF: azules vs rojos
@@ -295,7 +295,12 @@ const ECO_WHEEL={
   japon:   ['🌸','SAKURA','#c86a94'],  tokyo:   ['🌃','NEO-TOKYO','#7e5fd8'],
   egipto:  ['🐫','GIZA','#b8a04f'],    grecia:  ['🏛️','OLIMPO','#6f8fb0'],
   china:   ['🐉','DRAGÓN','#b83a3a'],
+  submarino:['🐠','ABISMO','#2a9fb0'], espacio: ['🪐','COSMOS','#6a5acd'],
+  pantano: ['🧪','CIÉNAGA','#6fa03a'],
 };
+// blindaje: si algún mundo no está en ECO_WHEEL, devolver un placeholder en vez de reventar
+// (un ECO_WHEEL[eco] undefined dejaba la pantalla NEGRA sin avanzar al juego)
+const ecoInfo=id=>ECO_WHEEL[id]||['🗺️',(id||'MAPA').toUpperCase(),'#8899aa'];
 function classic832(){ const cv=$('#game-canvas'); cv.width=832; cv.height=640; return cv; }
 
 async function runRound(){
@@ -318,7 +323,7 @@ async function runRound(){
     await MAPSELECT.pick(ecoPool, ecoId, {mode:'RONDA '+(m.round+1)+' · '+mode.icon+' '+mode.name});
   } else if(window.WHEEL){
     await WHEEL.spin('🗺️ ¿EN QUÉ MAPA?',
-      ecoPool.map(id=>({icon:ECO_WHEEL[id][0],label:ECO_WHEEL[id][1],color:ECO_WHEEL[id][2]})),
+      ecoPool.map(id=>{const w=ecoInfo(id);return {icon:w[0],label:w[1],color:w[2]};}),
       ecoPool.indexOf(ecoId));
   }
   // snapshot de ♥ y colores: los motores mueven vidas a su manera — aquí se restauran y
@@ -368,8 +373,8 @@ async function runRound(){
   const intro=$('#phase-intro'), pv=$('#map-preview');
   $('#intro-kicker').textContent='RONDA '+(m.round+1)+' · '+parts.length+' EN PIE';
   $('#intro-name').textContent=mode.icon+' '+mode.name;
-  $('#intro-desc').textContent=ECO_WHEEL[ecoId][1]+' · '+mode.desc;
-  $('#hud-phase').textContent='RONDA '+(m.round+1)+' · '+mode.name+' · '+ECO_WHEEL[ecoId][1];
+  $('#intro-desc').textContent=ecoInfo(ecoId)[1]+' · '+mode.desc;
+  $('#hud-phase').textContent='RONDA '+(m.round+1)+' · '+mode.name+' · '+ecoInfo(ecoId)[1];
   $('#game-controls').textContent=(mode.id==='bombas'?BOMBERMAN.controls : mode.id==='smash'?BROS.controls : TOWERFALL.controls);
   intro.classList.add('show'); SFX.phase();                  // primero visible (para medir la pantalla)
   if(pv){ pv.style.display=''; pv.classList.remove('zoom'); drawMapPreview(pv, ecoId); }
@@ -382,6 +387,7 @@ async function runRound(){
       clearInterval(iv2);
       $('#intro-go').textContent='GO!'; SFX.go();
       setTimeout(()=>{ intro.classList.remove('show');
+       try{
         if(mode.id==='bombas') BOMBERMAN.start(classic832(), parts, {duration:75, minAlive:minA}, done, ecoId);
         else if(mode.id==='smash') BROS.start(classic832(), parts, {duration:90, minAlive:minA, oneLife:true}, done, ecoId);   // ranked = 1 vida por ronda
         else if(mode.id==='hunt') TOWERFALL.start($('#game-canvas'), parts, {duration:180, gameMode:DATA.byMode['hunt'], variant}, done, ecoId);   // PRIMERO A 10: sin límite de tiempo, respawns infinitos
@@ -390,6 +396,11 @@ async function runRound(){
         else if(mode.id==='colina') TOWERFALL.start($('#game-canvas'), parts, {duration:100, gameMode:{id:'colina', name:'REY DE LA COLINA', respawn:1.4, goal:25}, variant}, done, ecoId);
         else if(mode.id==='infeccion') TOWERFALL.start($('#game-canvas'), parts, {duration:70, gameMode:{id:'infeccion', name:'INFECCIÓN', respawn:1.2}, variant}, done, ecoId);
         else TOWERFALL.start($('#game-canvas'), parts, {duration:60, minAlive:minA, rain:0, variant}, done, ecoId);
+       }catch(err){   // 🛟 si un motor revienta al arrancar, NO dejar la pantalla NEGRA: LMS seguro en SELVA
+        console.error('engine start', err);
+        try{ TOWERFALL.start($('#game-canvas'), parts, {duration:60, minAlive:minA, rain:0, variant:0}, done, 'selva'); }
+        catch(e2){ if(window.UI&&UI.toast) UI.toast('Error al iniciar la ronda'); done({}); }
+       }
       },350);
     }
   },650);
