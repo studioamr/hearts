@@ -29,7 +29,8 @@ function start(canvas, players, cfg, onEnd, eco){
     canvas.width=vc*52; canvas.height=640;
     VW=canvas.width; VH=canvas.height;         // vista = tu pantalla
     cols=Math.min(56, vc*2); rows=24;          // mundo = 2 pantallas de ancho × 2 de alto (cuadrado)
-    if(cfg&&cfg.gameMode&&cfg.gameMode.id==='ctf'){ cols=vc; rows=12; }   // 🚩 CTF: UNA sola pantalla — no puedes rodear por los lados
+    // 🚩 CTF usa el MISMO mundo grande (cámara suave que te sigue) — el "no rodear por los lados"
+    // lo garantizan las PAREDES SÓLIDAS en los costados (wrapEnt), no un mapa chiquito.
     if(cfg&&cfg.forceCols){ cols=cfg.forceCols; rows=cfg.forceRows||24; }   // ONLINE: el host dicta el mundo
     W=cols*52; H=rows*52+32;
     camX=Math.max(0,(W-VW)/2); camY=Math.max(0,(H-VH)/2); }
