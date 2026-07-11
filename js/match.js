@@ -304,13 +304,13 @@ async function runRound(){
   if(!pool.length){ m.used=[]; pool=RANKED_MODES.filter(avail); }
   const mode=pool[Math.floor(Math.random()*pool.length)];
   m.used.push(mode.id);
-  const ecoPool=ECOS.map(e=>e.id);                 // TODOS los mundos en TODOS los modos (fondos TowerFall)
+  const ecoPool=ECOS.map(e=>e.id);                 // TODOS los mundos en TODOS los modos
   const ecoId=ecoPool[Math.floor(Math.random()*ecoPool.length)];
-  if(window.WHEEL){
-    await WHEEL.spin('🎡 RONDA '+(m.round+1)+' — ¿QUÉ MODO TOCA?',
-      RANKED_MODES.map(md=>({icon:md.icon,label:md.name,color:md.color,
-        used:(m.used.includes(md.id)&&md.id!==mode.id)||!avail(md)})),
-      RANKED_MODES.indexOf(mode), {sub:'los modos que YA SALIERON no se repiten'});
+  // 🗺️ SELECTOR DE MAPA: el modo ya salió (banner) y el azar CAE en un mapa con ZOOM
+  const usedMapSel=!!window.MAPSELECT;
+  if(usedMapSel){
+    await MAPSELECT.pick(ecoPool, ecoId, {mode:'RONDA '+(m.round+1)+' · '+mode.icon+' '+mode.name});
+  } else if(window.WHEEL){
     await WHEEL.spin('🗺️ ¿EN QUÉ MAPA?',
       ecoPool.map(id=>({icon:ECO_WHEEL[id][0],label:ECO_WHEEL[id][1],color:ECO_WHEEL[id][2]})),
       ecoPool.indexOf(ecoId));
@@ -360,7 +360,7 @@ async function runRound(){
   intro.classList.add('show'); SFX.phase();                  // primero visible (para medir la pantalla)
   if(pv){ pv.style.display=''; pv.classList.remove('zoom'); drawMapPreview(pv, ecoId); }
   if(window.MUSIC) MUSIC.battle(m.round);
-  if(pv){ void pv.offsetWidth; pv.classList.add('zoom'); }  // arranca el acercamiento
+  if(pv && !usedMapSel){ void pv.offsetWidth; pv.classList.add('zoom'); }  // el zoom del preview SOLO si no hubo mapa-mundo (ese ya hizo zoom)
   let n=3; $('#intro-go').textContent=n; SFX.count();
   const iv2=setInterval(()=>{ n--;
     if(n>0){ $('#intro-go').textContent=n; SFX.count(); }

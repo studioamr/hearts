@@ -1283,6 +1283,21 @@ body.touch-on .touch-toggle{background:rgba(232,193,30,.85)}
 .wheel-title{font-family:'Archivo Black',sans-serif;font-size:17px;color:#fff;letter-spacing:.04em;
   margin-bottom:2px;text-shadow:0 2px 0 rgba(0,0,0,.4)}
 .wheel-sub{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.08em;color:#9fc0e4;margin-bottom:12px;min-height:13px}
+/* ===== 🗺️ SELECTOR DE MAPA (mapa del mundo + zoom) ===== */
+.ms-back{position:fixed;inset:0;z-index:86;display:none;align-items:center;justify-content:center;
+  background:rgba(4,10,22,.92);backdrop-filter:blur(4px)}
+.ms-back.show{display:flex}
+.ms-card{text-align:center;max-width:96vw}
+.ms-mode{font-family:'Archivo Black',sans-serif;font-size:16px;letter-spacing:.05em;color:#ffd34d;
+  text-shadow:0 2px 0 rgba(0,0,0,.45);margin-bottom:2px}
+.ms-title{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.16em;color:#9fc0e4;margin-bottom:10px}
+.ms-stage{border-radius:18px;overflow:hidden;border:4px solid #ffd34d;
+  box-shadow:inset 0 0 0 3px #0c2a52, 0 14px 44px rgba(0,0,0,.6);display:inline-block;line-height:0}
+.ms-stage canvas{display:block;width:min(720px,92vw);height:auto;will-change:transform}
+.ms-result{font-family:'Archivo Black',sans-serif;font-size:23px;color:#ffd34d;min-height:28px;
+  margin-top:14px;text-shadow:0 2px 0 rgba(0,0,0,.45)}
+.ms-back.zooming .ms-mode,.ms-back.zooming .ms-title,.ms-back.zooming .ms-result{opacity:0;transition:opacity .35s}
+
 /* ===== 🎡 RULETA estilo PREGUNTADOS ===== */
 .wheel-box{position:relative;width:312px;height:312px;margin:2px auto 0}
 .wheel{position:absolute;inset:0;border-radius:50%;
